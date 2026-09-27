@@ -8,11 +8,13 @@ body {
 
 main {
   min-height: 100vh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   gap: 16px;
+  padding: 32px 16px;
 }
 
 h1 {
@@ -36,4 +38,39 @@ button {
 button:hover {
   background: #000;
   color: #fff;
+}
+
+h2 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 28px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 18px;
+}
+
+input {
+  width: 220px;
+  padding: 8px;
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  font-family: inherit;
+  font-size: 18px;
+}
+
+p {
+  margin: 0;
+  font-size: 18px;
 }
