@@ -6,7 +6,8 @@ body {
   font-family: "Times New Roman", Times, serif;
 }
 
-main {
+main,
+.page {
   min-height: 100vh;
   box-sizing: border-box;
   display: flex;
@@ -22,6 +23,18 @@ h1 {
   font-weight: normal;
   font-size: 48px;
   letter-spacing: 1px;
+}
+
+h2 {
+  margin: 0;
+  font-weight: normal;
+  font-size: 28px;
+}
+
+h3 {
+  margin: 0 0 8px;
+  font-weight: normal;
+  font-size: 22px;
 }
 
 button {
@@ -40,10 +53,11 @@ button:hover {
   color: #fff;
 }
 
-h2 {
-  margin: 0;
-  font-weight: normal;
-  font-size: 28px;
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 
 form {
@@ -70,7 +84,42 @@ input {
   font-size: 18px;
 }
 
-p {
+input[aria-invalid="true"] {
+  border-color: #b00000;
+}
+
+p,
+.welcome {
   margin: 0;
   font-size: 18px;
+}
+
+.panel {
+  width: min(420px, 100%);
+  text-align: center;
+  border-top: 1px solid #000;
+  padding-top: 16px;
+}
+
+.goal-value {
+  font-size: 24px;
+}
+
+.placeholder {
+  color: #555;
+  font-style: italic;
+}
+
+.error {
+  color: #b00000;
+  font-size: 16px;
+  max-width: 260px;
+  text-align: center;
+}
+
+.success {
+  color: #0a5c0a;
+  font-size: 16px;
+  max-width: 260px;
+  text-align: center;
 }
