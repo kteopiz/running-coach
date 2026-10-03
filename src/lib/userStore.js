@@ -1,10 +1,19 @@
 const USERS_KEY = "running-coach:users";
 const SESSION_KEY = "running-coach:session";
 
+export const MEASUREMENT_MIN = 1;
+
 function readUsers() {
   try {
     const raw = localStorage.getItem(USERS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const users = raw ? JSON.parse(raw) : {};
+    for (const user of Object.values(users)) {
+      if (user.heightUnit !== "inches") {
+        user.height = Math.round(Number(user.height) * 12 * 10) / 10;
+        user.heightUnit = "inches";
+      }
+    }
+    return users;
   } catch {
     return {};
   }
@@ -12,6 +21,12 @@ function readUsers() {
 
 function writeUsers(users) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function publicUser(user) {
+  if (!user) return null;
+  const { password, ...profile } = user;
+  return profile;
 }
 
 export function getSessionEmail() {
@@ -30,10 +45,20 @@ export function getCurrentUser() {
   const email = getSessionEmail();
   if (!email) return null;
   const users = readUsers();
-  return users[email] ?? null;
+  return publicUser(users[email]);
 }
 
 export function registerUser({ name, email, password, age, height, weight }) {
+  const normalizedName = typeof name === "string" ? name.trim() : "";
+  if (!normalizedName) {
+    return { ok: false, error: "Full name is required." };
+  }
+
+  const errors = validateMeasurements({ age, height, weight });
+  if (Object.keys(errors).length > 0) {
+    return { ok: false, error: Object.values(errors)[0] };
+  }
+
   const normalizedEmail = email.trim().toLowerCase();
   const users = readUsers();
 
@@ -42,17 +67,18 @@ export function registerUser({ name, email, password, age, height, weight }) {
   }
 
   users[normalizedEmail] = {
-    name: name.trim(),
+    name: normalizedName,
     email: normalizedEmail,
     password,
     age: Number(age),
     height: Number(height),
+    heightUnit: "inches",
     weight: Number(weight),
     weeklyMileageGoal: null,
   };
   writeUsers(users);
   setSession(normalizedEmail);
-  return { ok: true, user: users[normalizedEmail] };
+  return { ok: true, user: publicUser(users[normalizedEmail]) };
 }
 
 export function authenticateUser(email, password) {
@@ -65,7 +91,7 @@ export function authenticateUser(email, password) {
   }
 
   setSession(normalizedEmail);
-  return { ok: true, user };
+  return { ok: true, user: publicUser(user) };
 }
 
 export function updateCurrentUser(updates) {
@@ -82,10 +108,10 @@ export function updateCurrentUser(updates) {
 
   users[email] = { ...user, ...updates, email: user.email, password: user.password };
   writeUsers(users);
-  return { ok: true, user: users[email] };
+  return { ok: true, user: publicUser(users[email]) };
 }
 
-export function validateProfileFields({ age, height, weight, weeklyMileageGoal }) {
+function validateMeasurements({ age, height, weight }) {
   const errors = {};
 
   const ageNum = Number(age);
@@ -94,14 +120,20 @@ export function validateProfileFields({ age, height, weight, weeklyMileageGoal }
   }
 
   const heightNum = Number(height);
-  if (!Number.isFinite(heightNum) || heightNum <= 0) {
-    errors.height = "Height must be a positive number.";
+  if (!Number.isFinite(heightNum) || heightNum < MEASUREMENT_MIN) {
+    errors.height = `Height must be at least ${MEASUREMENT_MIN} inch.`;
   }
 
   const weightNum = Number(weight);
-  if (!Number.isFinite(weightNum) || weightNum <= 0) {
-    errors.weight = "Weight must be a positive number.";
+  if (!Number.isFinite(weightNum) || weightNum < MEASUREMENT_MIN) {
+    errors.weight = `Weight must be at least ${MEASUREMENT_MIN} lb.`;
   }
+
+  return errors;
+}
+
+export function validateProfileFields({ age, height, weight, weeklyMileageGoal }) {
+  const errors = validateMeasurements({ age, height, weight });
 
   if (weeklyMileageGoal === "" || weeklyMileageGoal === null || weeklyMileageGoal === undefined) {
     errors.weeklyMileageGoal = "Weekly mileage goal is required.";

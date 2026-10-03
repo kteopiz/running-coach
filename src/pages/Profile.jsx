@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { MEASUREMENT_MIN, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -79,11 +79,11 @@ export default function Profile({ user, onUserChange, onNavigate }) {
         </label>
 
         <label>
-          Height (feet)
+          Height (inches)
           <input
             name="height"
             type="number"
-            min="0.1"
+            min={MEASUREMENT_MIN}
             step="0.1"
             value={height}
             onChange={(event) => setHeight(event.target.value)}
@@ -97,7 +97,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           <input
             name="weight"
             type="number"
-            min="0.1"
+            min={MEASUREMENT_MIN}
             step="0.1"
             value={weight}
             onChange={(event) => setWeight(event.target.value)}

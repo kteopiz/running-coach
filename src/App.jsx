@@ -3,6 +3,7 @@ import {
   authenticateUser,
   clearSession,
   getCurrentUser,
+  MEASUREMENT_MIN,
   registerUser,
 } from "./lib/userStore";
 import Dashboard from "./pages/Dashboard";
@@ -125,12 +126,12 @@ function SignUp({ onBack, onSuccess }) {
           <input name="age" type="number" min="1" required />
         </label>
         <label>
-          Height (feet)
-          <input name="height" type="number" min="1" step="0.1" required />
+          Height (inches)
+          <input name="height" type="number" min={MEASUREMENT_MIN} step="0.1" required />
         </label>
         <label>
           Weight (lb)
-          <input name="weight" type="number" min="1" step="0.1" required />
+          <input name="weight" type="number" min={MEASUREMENT_MIN} step="0.1" required />
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button type="submit">Create account</button>
