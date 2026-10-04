@@ -123,3 +123,9 @@ p,
   max-width: 260px;
   text-align: center;
 }
+
+.account-help {
+  max-width: 260px;
+  text-align: center;
+  font-size: 16px;
+}

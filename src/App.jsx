@@ -8,6 +8,7 @@ import {
 } from "./lib/userStore";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
 
 export default function App() {
   const [user, setUser] = useState(() => getCurrentUser());
@@ -57,6 +58,7 @@ export default function App() {
   if (page === "signin") {
     return (
       <SignIn
+        onForgotPassword={() => setPage("forgotPassword")}
         onBack={() => setPage("home")}
         onSuccess={(nextUser) => {
           setUser(nextUser);
@@ -64,6 +66,10 @@ export default function App() {
         }}
       />
     );
+  }
+
+  if (page === "forgotPassword") {
+    return <ForgotPassword onBack={() => setPage("signin")} />;
   }
 
   return (
@@ -143,7 +149,7 @@ function SignUp({ onBack, onSuccess }) {
   );
 }
 
-function SignIn({ onBack, onSuccess }) {
+function SignIn({ onBack, onSuccess, onForgotPassword }) {
   const [error, setError] = useState("");
 
   function handleSubmit(event) {
@@ -177,6 +183,9 @@ function SignIn({ onBack, onSuccess }) {
         {error ? <p className="error">{error}</p> : null}
         <button type="submit">Sign in</button>
       </form>
+      <button type="button" onClick={onForgotPassword}>
+        Forgot password?
+      </button>
       <button type="button" onClick={onBack}>
         Back
       </button>

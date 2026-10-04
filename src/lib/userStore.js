@@ -111,6 +111,60 @@ export function updateCurrentUser(updates) {
   return { ok: true, user: publicUser(users[email]) };
 }
 
+function validateAccountFields({ email, password, confirmPassword }, passwordRequired) {
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return "Enter a valid email address.";
+  }
+  if (passwordRequired || password !== "") {
+    if (typeof password !== "string" || !password.trim()) {
+      return "Enter a new password.";
+    }
+    if (password !== confirmPassword) {
+      return "Passwords do not match.";
+    }
+  } else if (confirmPassword !== "") {
+    return "Enter a new password.";
+  }
+  return null;
+}
+
+export function updateCurrentAccount({ email, password = "", confirmPassword = "" }) {
+  const currentEmail = getSessionEmail();
+  const users = readUsers();
+  const user = users[currentEmail];
+  if (!currentEmail || !user) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
+  const error = validateAccountFields({ email, password, confirmPassword }, false);
+  if (error) return { ok: false, error };
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== currentEmail && users[normalizedEmail]) {
+    return { ok: false, error: "An account with this email already exists." };
+  }
+
+  const updated = { ...user, email: normalizedEmail, password: password || user.password };
+  delete users[currentEmail];
+  users[normalizedEmail] = updated;
+  writeUsers(users);
+  setSession(normalizedEmail);
+  return { ok: true, user: publicUser(updated) };
+}
+
+export function resetPassword({ email, password, confirmPassword }) {
+  const error = validateAccountFields({ email, password, confirmPassword }, true);
+  if (error) return { ok: false, error };
+  const normalizedEmail = email.trim().toLowerCase();
+  const users = readUsers();
+  if (!users[normalizedEmail]) {
+    return { ok: false, error: "No account found with this email." };
+  }
+
+  users[normalizedEmail].password = password;
+  writeUsers(users);
+  return { ok: true };
+}
+
 function validateMeasurements({ age, height, weight }) {
   const errors = {};
 

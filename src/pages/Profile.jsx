@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MEASUREMENT_MIN, updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { MEASUREMENT_MIN, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -63,6 +63,9 @@ export default function Profile({ user, onUserChange, onNavigate }) {
         </button>
       </nav>
 
+      <AccountSettings user={user} onUserChange={onUserChange} />
+
+      <h3>Measurements and weekly goal</h3>
       <form onSubmit={handleSubmit} noValidate>
         <label>
           Age
@@ -128,5 +131,55 @@ export default function Profile({ user, onUserChange, onNavigate }) {
         <button type="submit">Save changes</button>
       </form>
     </main>
+  );
+}
+
+function AccountSettings({ user, onUserChange }) {
+  const [email, setEmail] = useState(user.email);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+    const form = new FormData(event.currentTarget);
+    const result = updateCurrentAccount({
+      email,
+      password: form.get("password"),
+      confirmPassword: form.get("confirmPassword"),
+    });
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    event.currentTarget.reset();
+    setEmail(result.user.email);
+    onUserChange(result.user);
+    setSuccess("Account details saved.");
+  }
+
+  return (
+    <>
+      <h3>Account details</h3>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Email
+          <input name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        </label>
+        <label>
+          New password (optional)
+          <input name="password" type="password" autoComplete="new-password" />
+        </label>
+        <label>
+          Confirm new password
+          <input name="confirmPassword" type="password" autoComplete="new-password" />
+        </label>
+        <p className="account-help">Leave password fields blank to keep your current password.</p>
+        {error ? <p className="error" role="alert">{error}</p> : null}
+        {success ? <p className="success" role="status">{success}</p> : null}
+        <button type="submit">Save account</button>
+      </form>
+    </>
   );
 }
