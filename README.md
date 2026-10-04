@@ -26,3 +26,11 @@ Sessions use an HttpOnly cookie and expire after seven days.
 For this local project, forgot password resets an account immediately using its
 email and a matching new password, without verification. Resetting clears that
 account's existing sessions. API tests run with `npm test` using temporary databases.
+
+## Frontend account integration
+
+Start the API with `node server/index.mjs` and start Vite with `npm run dev` in a
+second terminal. Open http://127.0.0.1:5174. Vite proxies `/api` to the local API.
+Registration, login, logout, profile updates, email/password changes, and immediate
+password reset now use SQLite. Previous localStorage accounts are not imported;
+register again or use a sample account. The dashboard's runs display is deferred.

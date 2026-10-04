@@ -129,3 +129,8 @@ p,
   text-align: center;
   font-size: 16px;
 }
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

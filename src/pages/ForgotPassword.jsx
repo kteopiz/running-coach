@@ -4,21 +4,26 @@ import { resetPassword } from "../lib/userStore";
 export default function ForgotPassword({ onBack }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (pending) return;
     setError("");
-    const form = new FormData(event.currentTarget);
-    const result = resetPassword({
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setPending(true);
+    const result = await resetPassword({
       email: form.get("email"),
       password: form.get("password"),
       confirmPassword: form.get("confirmPassword"),
     });
+    setPending(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    event.currentTarget.reset();
+    formElement.reset();
     setSuccess(true);
   }
 
@@ -43,7 +48,7 @@ export default function ForgotPassword({ onBack }) {
             <input name="confirmPassword" type="password" autoComplete="new-password" required />
           </label>
           {error ? <p className="error" role="alert">{error}</p> : null}
-          <button type="submit">Reset password</button>
+          <button type="submit" disabled={pending}>{pending ? "Resetting…" : "Reset password"}</button>
         </form>
       )}
       <button type="button" onClick={onBack}>Back to sign in</button>

@@ -12,9 +12,11 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   );
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (pending) return;
     setSuccess("");
 
     const nextErrors = validateProfileFields({
@@ -29,12 +31,14 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       return;
     }
 
-    const result = updateCurrentUser({
+    setPending(true);
+    const result = await updateCurrentUser({
       age: Number(age),
       height: Number(height),
       weight: Number(weight),
       weeklyMileageGoal: Number(weeklyMileageGoal),
     });
+    setPending(false);
 
     if (!result.ok) {
       setErrors({ form: result.error });
@@ -128,7 +132,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
         {errors.form ? <p className="error">{errors.form}</p> : null}
         {success ? <p className="success">{success}</p> : null}
 
-        <button type="submit">Save changes</button>
+        <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save changes"}</button>
       </form>
     </main>
   );
@@ -138,22 +142,27 @@ function AccountSettings({ user, onUserChange }) {
   const [email, setEmail] = useState(user.email);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (pending) return;
     setError("");
     setSuccess("");
-    const form = new FormData(event.currentTarget);
-    const result = updateCurrentAccount({
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setPending(true);
+    const result = await updateCurrentAccount({
       email,
       password: form.get("password"),
       confirmPassword: form.get("confirmPassword"),
     });
+    setPending(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    event.currentTarget.reset();
+    formElement.reset();
     setEmail(result.user.email);
     onUserChange(result.user);
     setSuccess("Account details saved.");
@@ -178,7 +187,7 @@ function AccountSettings({ user, onUserChange }) {
         <p className="account-help">Leave password fields blank to keep your current password.</p>
         {error ? <p className="error" role="alert">{error}</p> : null}
         {success ? <p className="success" role="status">{success}</p> : null}
-        <button type="submit">Save account</button>
+        <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save account"}</button>
       </form>
     </>
   );
