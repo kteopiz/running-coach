@@ -7,9 +7,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "db:setup": "node scripts/db-setup.mjs",
     "db:reset": "node scripts/db-setup.mjs --reset",
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "test": "node --test",
     "build": "vite build",
     "preview": "vite preview"
