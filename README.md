@@ -15,3 +15,14 @@ by Git, so teammates have independent data. `npm test` checks database setup and
 The users table stores profiles and hashed passwords. Runs reference their owner
 by user ID and store dates, distances, durations, and notes. Sessions reference
 users by ID and store sign-in tokens and expiry times.
+
+## Local API
+
+Run `node server/index.mjs` to start the API on http://127.0.0.1:3001.
+The API supports registration, login, logout, profile/account editing, and reading
+runs. Passwords are stored as salted scrypt hashes and omitted from user responses.
+Sessions use an HttpOnly cookie and expire after seven days.
+
+For this local project, forgot password resets an account immediately using its
+email and a matching new password, without verification. Resetting clears that
+account's existing sessions. API tests run with `npm test` using temporary databases.
