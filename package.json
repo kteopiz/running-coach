@@ -3,8 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
-    "dev": "vite",
+    "setup": "node scripts/setup.mjs",
+    "db:setup": "node scripts/db-setup.mjs",
+    "db:reset": "node scripts/db-setup.mjs --reset",
+    "dev": "node scripts/dev.mjs",
+    "test": "node --test",
     "build": "vite build",
     "preview": "vite preview"
   },

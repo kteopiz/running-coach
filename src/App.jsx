@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   authenticateUser,
   clearSession,
@@ -11,18 +11,40 @@ import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 
 export default function App() {
-  const [user, setUser] = useState(() => getCurrentUser());
-  const [page, setPage] = useState(() => (getCurrentUser() ? "dashboard" : "home"));
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("home");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  function handleNavigate(nextPage) {
+  useEffect(() => {
+    let active = true;
+    getCurrentUser().then((result) => {
+      if (!active) return;
+      if (result.ok) {
+        setUser(result.user);
+        setPage(result.user ? "dashboard" : "home");
+      } else setError(result.error);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  async function handleNavigate(nextPage) {
     if (nextPage === "signout") {
-      clearSession();
+      const result = await clearSession();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setUser(null);
       setPage("home");
       return;
     }
     setPage(nextPage);
   }
+
+  if (loading) return <main><p>Loading your account…</p></main>;
+  if (error) return <main><p className="error" role="alert">{error}</p><button onClick={() => window.location.reload()}>Retry</button></main>;
 
   if (user && page === "dashboard") {
     return (
@@ -87,13 +109,16 @@ export default function App() {
 
 function SignUp({ onBack, onSuccess }) {
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (pending) return;
     setError("");
+    setPending(true);
 
     const form = new FormData(event.currentTarget);
-    const result = registerUser({
+    const result = await registerUser({
       name: form.get("name"),
       email: form.get("email"),
       password: form.get("password"),
@@ -101,6 +126,7 @@ function SignUp({ onBack, onSuccess }) {
       height: form.get("height"),
       weight: form.get("weight"),
     });
+    setPending(false);
 
     if (!result.ok) {
       setError(result.error);
@@ -140,7 +166,7 @@ function SignUp({ onBack, onSuccess }) {
           <input name="weight" type="number" min={MEASUREMENT_MIN} step="0.1" required />
         </label>
         {error ? <p className="error">{error}</p> : null}
-        <button type="submit">Create account</button>
+        <button type="submit" disabled={pending}>{pending ? "Creating…" : "Create account"}</button>
       </form>
       <button type="button" onClick={onBack}>
         Back
@@ -151,13 +177,17 @@ function SignUp({ onBack, onSuccess }) {
 
 function SignIn({ onBack, onSuccess, onForgotPassword }) {
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (pending) return;
     setError("");
+    setPending(true);
 
     const form = new FormData(event.currentTarget);
-    const result = authenticateUser(form.get("email"), form.get("password"));
+    const result = await authenticateUser(form.get("email"), form.get("password"));
+    setPending(false);
 
     if (!result.ok) {
       setError(result.error);
@@ -181,7 +211,7 @@ function SignIn({ onBack, onSuccess, onForgotPassword }) {
           <input name="password" type="password" required />
         </label>
         {error ? <p className="error">{error}</p> : null}
-        <button type="submit">Sign in</button>
+        <button type="submit" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
       </form>
       <button type="button" onClick={onForgotPassword}>
         Forgot password?
