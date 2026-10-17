@@ -25,3 +25,4 @@ export const authenticateUser = (email, password) => request("/login", "POST", {
 export const updateCurrentUser = (fields) => request("/profile", "PATCH", fields);
 export const updateCurrentAccount = (fields) => request("/account", "PATCH", fields);
 export const resetPassword = (fields) => request("/reset-password", "POST", fields);
+export const getActivity = () => request("/runs");
