@@ -27,13 +27,13 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
   }
 
   return (
-    <section className="panel" aria-labelledby="runs-heading">
-      <h3 id="runs-heading">Run history</h3>
-      <button type="button" disabled={pending || Boolean(editing)} onClick={() => {
+    <section className="panel history-panel" aria-labelledby="runs-heading">
+      <div className="section-heading"><div><h2 id="runs-heading">Run history</h2><p className="muted">Your training, one run at a time.</p></div>
+      <button className="primary-button" type="button" disabled={pending || Boolean(editing)} onClick={() => {
         setMessage("");
         setActionError("");
         setEditing({ date: localDate(), distanceMiles: "", durationMinutes: "" });
-      }}>Log a run</button>
+      }}>+ Log a run</button></div>
       {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}
@@ -41,16 +41,19 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       {error ? <><p className="error" role="alert">{error}</p><button type="button" onClick={onRefresh}>Retry</button></> : null}
       {!loading && !error && runs.length === 0 ? <p>No runs yet. Log your first run to start tracking your training.</p> : null}
       {!loading && !error && runs.length > 0 ? (
-        <ul>
+        <ul className="run-list">
           {runs.map(run => (
-            <li key={run.id}>
-              <p><time dateTime={run.date}>{run.date}</time> — {run.distanceMiles} miles — {run.durationMinutes == null ? "Duration: Not recorded" : `${run.durationMinutes} minutes`}</p>
+            <li className="run-row" key={run.id}>
+              <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={run.date}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">Run</span></div></div>
+              <div className="run-stat"><strong>{run.distanceMiles}<span> mi</span></strong><span className="muted">Distance</span></div>
+              <div className="run-stat"><strong>{run.durationMinutes ?? "—"}<span>{run.durationMinutes == null ? "" : " min"}</span></strong><span className="muted">{run.durationMinutes == null ? "Not recorded" : "Duration"}</span></div>
+              <div className="row-actions">
               <button type="button" disabled={pending || Boolean(editing)} onClick={() => {
                 setMessage("");
                 setActionError("");
                 setEditing(run);
               }} aria-label={`Edit run on ${run.date}`}>Edit</button>
-              <button type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${run.date}`}>Delete</button>
+              <button className="danger-button" type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${run.date}`}>Delete</button></div>
             </li>
           ))}
         </ul>
@@ -78,7 +81,7 @@ function RunForm({ run, onSaved, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate aria-label={run.id ? "Edit run" : "Log a run"}>
+    <form className="run-form" onSubmit={handleSubmit} noValidate aria-label={run.id ? "Edit run" : "Log a run"}>
       <h3>{run.id ? "Edit run" : "Log a run"}</h3>
       {[
         ["date", "Date", "date"],
@@ -87,7 +90,7 @@ function RunForm({ run, onSaved, onCancel }) {
       ].map(([name, label, type]) => (
         <label key={name}>
           {label}
-          <input name={name} type={type} required disabled={pending}
+          <input name={name} type={type} required disabled={pending} autoFocus={name === "date"}
             max={type === "date" ? localDate() : undefined}
             min={type === "number" ? "0" : undefined} step={type === "number" ? "any" : undefined}
             value={fields[name]} onChange={event => setFields({ ...fields, [name]: event.target.value })}
@@ -96,8 +99,8 @@ function RunForm({ run, onSaved, onCancel }) {
         </label>
       ))}
       {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
-      <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save run"}</button>
-      <button type="button" disabled={pending} onClick={onCancel}>Cancel</button>
+      <div className="form-actions"><button type="submit" disabled={pending}>{pending ? "Saving…" : "Save run"}</button>
+      <button type="button" disabled={pending} onClick={onCancel}>Cancel</button></div>
     </form>
   );
 }

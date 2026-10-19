@@ -96,7 +96,9 @@ export default function App() {
 
   return (
     <main>
-      <h1>running coach app</h1>
+      <p className="auth-brand">RUNNING COACH</p>
+      <h1>Your next run starts here.</h1>
+      <p className="muted">Log your miles. Find your rhythm. Reach your goals.</p>
       <button type="button" onClick={() => setPage("signin")}>
         Sign in
       </button>
@@ -138,8 +140,8 @@ function SignUp({ onBack, onSuccess }) {
 
   return (
     <main>
-      <h1>running coach app</h1>
-      <h2>Sign up</h2>
+      <p className="auth-brand">RUNNING COACH</p>
+      <h1>Sign up</h1>
       <form onSubmit={handleSubmit}>
         <label>
           Full name
@@ -199,8 +201,8 @@ function SignIn({ onBack, onSuccess, onForgotPassword }) {
 
   return (
     <main>
-      <h1>running coach app</h1>
-      <h2>Sign in</h2>
+      <p className="auth-brand">RUNNING COACH</p>
+      <h1>Sign in</h1>
       <form onSubmit={handleSubmit}>
         <label>
           Email
