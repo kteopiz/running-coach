@@ -1,3 +1,4 @@
+import AppShell from "../components/AppShell";
 import { useState } from "react";
 import { MEASUREMENT_MIN, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
@@ -50,26 +51,12 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   }
 
   return (
-    <main className="page">
-      <h1>running coach app</h1>
-      <h2>Profile</h2>
-      <p className="welcome">{user.email}</p>
-
-      <nav className="nav">
-        <button type="button" onClick={() => onNavigate("dashboard")}>
-          Dashboard
-        </button>
-        <button type="button" onClick={() => onNavigate("profile")}>
-          Profile
-        </button>
-        <button type="button" onClick={() => onNavigate("signout")}>
-          Sign out
-        </button>
-      </nav>
-
-      <AccountSettings user={user} onUserChange={onUserChange} />
-
-      <h3>Measurements and weekly goal</h3>
+    <AppShell user={user} page="profile" onNavigate={onNavigate}>
+      <div className="page-heading"><div><p className="eyebrow">MAKE IT YOURS</p><h1>Profile & goal</h1><p className="muted">Your details. Your next milestone.</p></div></div>
+      <div className="profile-grid">
+      <section className="panel"><AccountSettings user={user} onUserChange={onUserChange} /></section>
+      <section className="panel">
+      <h2>Measurements & weekly goal</h2><p className="muted section-description">Keep your profile current and set a distance to work toward.</p>
       <form onSubmit={handleSubmit} noValidate>
         <label>
           Age
@@ -113,7 +100,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           {errors.weight ? <span className="error">{errors.weight}</span> : null}
         </label>
 
-        <label>
+        <label className="weekly-goal-field">
           Weekly mileage goal (miles)
           <input
             name="weeklyMileageGoal"
@@ -134,7 +121,9 @@ export default function Profile({ user, onUserChange, onNavigate }) {
 
         <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save changes"}</button>
       </form>
-    </main>
+      </section>
+      </div>
+    </AppShell>
   );
 }
 
@@ -170,7 +159,7 @@ function AccountSettings({ user, onUserChange }) {
 
   return (
     <>
-      <h3>Account details</h3>
+      <h2>Account details</h2><p className="muted section-description">Manage your email and password.</p>
       <form onSubmit={handleSubmit}>
         <label>
           Email

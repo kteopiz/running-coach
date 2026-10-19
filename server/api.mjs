@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./passwords.mjs";
 import { validateAccountFields, validateMeasurements, validateProfileFields } from "../src/lib/validation.js";
 
+import { localDate, validateRunFields } from "../src/lib/runValidation.js";
+
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const publicColumns = `id, name, email, age, height_inches AS height,
   weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal`;
@@ -32,10 +34,6 @@ async function readBody(req) {
   } catch {
     fail("Invalid JSON request.");
   }
-}
-
-function localDate(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function createApi(db) {
@@ -106,7 +104,9 @@ export function createApi(db) {
         } catch (error) { db.exec("ROLLBACK"); throw error; }
         return respond(res, 200, { ok: true });
       }
-      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs"].includes(route)) fail("Endpoint not found.", 404);
+      const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
+      const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
+      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs"].includes(route) && !runMutation) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
       if (!user) fail("You must be signed in.", 401);
       if (route === "PATCH /api/profile") {
@@ -132,11 +132,35 @@ export function createApi(db) {
         }
         return respond(res, 200, { ok: true, user: publicUser(user.id) });
       }
+      if (route === "POST /api/runs" || runMutation) {
+        const id = runMatch ? Number(runMatch[1]) : null;
+        if (runMutation && (!Number.isSafeInteger(id) || !db.prepare("SELECT id FROM runs WHERE id = ? AND user_id = ?").get(id, user.id))) {
+          fail("Run not found.", 404);
+        }
+        if (req.method === "DELETE") {
+          db.prepare("DELETE FROM runs WHERE id = ? AND user_id = ?").run(id, user.id);
+          return respond(res, 200, { ok: true });
+        }
+        const body = await readBody(req);
+        const errors = validateRunFields(body);
+        if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
+        let savedId = id;
+        if (req.method === "POST") {
+          const result = db.prepare("INSERT INTO runs (user_id, run_date, distance_miles, duration_minutes) VALUES (?, ?, ?, ?)")
+            .run(user.id, body.date, Number(body.distanceMiles), Number(body.durationMinutes));
+          savedId = Number(result.lastInsertRowid);
+        } else {
+          db.prepare("UPDATE runs SET run_date = ?, distance_miles = ?, duration_minutes = ? WHERE id = ? AND user_id = ?")
+            .run(body.date, Number(body.distanceMiles), Number(body.durationMinutes), id, user.id);
+        }
+        const run = db.prepare("SELECT id, run_date AS date, distance_miles AS distanceMiles, duration_minutes AS durationMinutes, notes FROM runs WHERE id = ? AND user_id = ?").get(savedId, user.id);
+        return respond(res, req.method === "POST" ? 201 : 200, { ok: true, run });
+      }
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
       const runs = db.prepare(`SELECT id, run_date AS date, distance_miles AS distanceMiles,
-        duration_minutes AS durationMinutes, notes FROM runs WHERE user_id = ? ORDER BY run_date DESC, id DESC LIMIT 5`).all(user.id);
+        duration_minutes AS durationMinutes, notes FROM runs WHERE user_id = ? ORDER BY run_date DESC, id DESC`).all(user.id);
       const { total } = db.prepare("SELECT COALESCE(SUM(distance_miles), 0) AS total FROM runs WHERE user_id = ? AND run_date >= ? AND run_date <= ?")
         .get(user.id, localDate(monday), localDate(today));
       return respond(res, 200, { ok: true, runs, weeklyMiles: Math.round(total * 10) / 10 });

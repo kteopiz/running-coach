@@ -1,3 +1,4 @@
+import ThemeToggle from "../components/ThemeToggle";
 import { useState } from "react";
 import { resetPassword } from "../lib/userStore";
 
@@ -29,8 +30,8 @@ export default function ForgotPassword({ onBack }) {
 
   return (
     <main>
-      <h1>running coach app</h1>
-      <h2>Reset password</h2>
+      <div className="auth-header"><p className="auth-brand">RUNNING COACH</p><ThemeToggle /></div>
+      <h1>Reset password</h1>
       {success ? (
         <p className="success" role="status">Password reset. Sign in with your new password.</p>
       ) : (
