@@ -31,7 +31,7 @@ test("run API validates inputs, isolates owners, and refreshes sorted history an
   previousSunday.setDate(monday.getDate() - 1);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
-  const valid = { date: localDate(today), distanceMiles: 3, durationMinutes: 30 };
+  const valid = { date: localDate(today), startTime: "08:00", distanceMiles: 3, durationMinutes: 30 };
 
   try {
     for (const [path, method] of [["/runs", "GET"], ["/runs", "POST"], ["/runs/1", "PATCH"], ["/runs/1", "DELETE"]]) {
@@ -41,7 +41,8 @@ test("run API validates inputs, isolates owners, and refreshes sorted history an
     assert.deepEqual((await request("/runs")).runs, []);
     assert.equal((await request("/runs")).weeklyMiles, 0);
     const invalid = [
-      {}, ...["date", "distanceMiles", "durationMinutes"].map(key => ({ ...valid, [key]: "" })),
+      {}, ...["date", "startTime", "distanceMiles", "durationMinutes"].map(key => ({ ...valid, [key]: "" })),
+      { ...valid, startTime: "25:99" },
       { ...valid, date: "2026-02-30" }, { ...valid, date: localDate(tomorrow) },
       ...["distanceMiles", "durationMinutes"].flatMap(key => ["abc", 0, -1, null, true, [], "1e309"].map(value => ({ ...valid, [key]: value }))),
     ];

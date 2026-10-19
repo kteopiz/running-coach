@@ -116,7 +116,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 .error { color: var(--danger); font-size: 12px; }
 .success, .history-panel > [role="status"] { color: var(--success); font-size: 13px; }
 .history-panel > p { margin-bottom: 12px; }
-.run-form { grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; padding: 18px; margin-bottom: 18px; gap: 14px; }
+.run-form { grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; padding: 18px; margin-bottom: 18px; gap: 14px; }
 .run-form h3, .run-form > .error, .form-actions { grid-column: 1 / -1; }
 .form-actions { display: flex; gap: 8px; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }

@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { createRun, updateRun, deleteRun } from "../lib/userStore";
-import { localDate, validateRunFields } from "../lib/runValidation";
+import { localDate, localTime, validateRunFields } from "../lib/runValidation";
+
+function formatClock(value) {
+  if (!value) return "Time not recorded";
+  const [hour, minute] = value.split(":").map(Number);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function runLabel(run) {
+  const date = new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const miles = Number(run.distanceMiles) === 1 ? "mile" : "miles";
+  return `${date} at ${formatClock(run.startTime)}, ${run.distanceMiles} ${miles}`;
+}
 
 export default function RunHistory({ runs, loading, error, onRefresh }) {
   const [editing, setEditing] = useState(null);
@@ -9,7 +22,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
   const [actionError, setActionError] = useState("");
 
   async function handleDelete(run) {
-    if (pending || !window.confirm(`Delete the run on ${run.date} (${run.distanceMiles} miles)? This cannot be undone.`)) return;
+    if (pending || !window.confirm(`Delete the run on ${runLabel(run)}? This cannot be undone.`)) return;
     setPending(true);
     setMessage("");
     setActionError("");
@@ -32,7 +45,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       <button className="primary-button" type="button" disabled={pending || Boolean(editing)} onClick={() => {
         setMessage("");
         setActionError("");
-        setEditing({ date: localDate(), distanceMiles: "", durationMinutes: "" });
+        setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "" });
       }}>+ Log a run</button></div>
       {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
@@ -44,7 +57,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
         <ul className="run-list">
           {runs.map(run => (
             <li className="run-row" key={run.id}>
-              <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={run.date}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">Run</span></div></div>
+              <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
               <div className="run-stat"><strong>{run.distanceMiles}<span> mi</span></strong><span className="muted">Distance</span></div>
               <div className="run-stat"><strong>{run.durationMinutes ?? "—"}<span>{run.durationMinutes == null ? "" : " min"}</span></strong><span className="muted">{run.durationMinutes == null ? "Not recorded" : "Duration"}</span></div>
               <div className="row-actions">
@@ -52,8 +65,8 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
                 setMessage("");
                 setActionError("");
                 setEditing(run);
-              }} aria-label={`Edit run on ${run.date}`}>Edit</button>
-              <button className="danger-button" type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${run.date}`}>Delete</button></div>
+              }} aria-label={`Edit run on ${runLabel(run)}`}>Edit</button>
+              <button className="danger-button" type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${runLabel(run)}`}>Delete</button></div>
             </li>
           ))}
         </ul>
@@ -63,7 +76,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
 }
 
 function RunForm({ run, onSaved, onCancel }) {
-  const [fields, setFields] = useState({ date: run.date, distanceMiles: run.distanceMiles, durationMinutes: run.durationMinutes ?? "" });
+  const [fields, setFields] = useState({ date: run.date, startTime: run.startTime || "", distanceMiles: run.distanceMiles, durationMinutes: run.durationMinutes ?? "" });
   const [errors, setErrors] = useState({});
   const [pending, setPending] = useState(false);
 
@@ -85,6 +98,7 @@ function RunForm({ run, onSaved, onCancel }) {
       <h3>{run.id ? "Edit run" : "Log a run"}</h3>
       {[
         ["date", "Date", "date"],
+        ["startTime", "Start time", "time"],
         ["distanceMiles", "Distance (miles)", "number"],
         ["durationMinutes", "Duration (minutes)", "number"],
       ].map(([name, label, type]) => (

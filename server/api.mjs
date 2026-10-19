@@ -8,6 +8,8 @@ import { localDate, validateRunFields } from "../src/lib/runValidation.js";
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const publicColumns = `id, name, email, age, height_inches AS height,
   weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal`;
+const RUN_COLUMNS = `SELECT id, run_date AS date, start_time AS startTime, distance_miles AS distanceMiles,
+  duration_minutes AS durationMinutes, notes FROM runs`;
 const now = () => Math.floor(Date.now() / 1000);
 const emailKey = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
 
@@ -146,21 +148,20 @@ export function createApi(db) {
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
         let savedId = id;
         if (req.method === "POST") {
-          const result = db.prepare("INSERT INTO runs (user_id, run_date, distance_miles, duration_minutes) VALUES (?, ?, ?, ?)")
-            .run(user.id, body.date, Number(body.distanceMiles), Number(body.durationMinutes));
+          const result = db.prepare("INSERT INTO runs (user_id, run_date, start_time, distance_miles, duration_minutes) VALUES (?, ?, ?, ?, ?)")
+            .run(user.id, body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes));
           savedId = Number(result.lastInsertRowid);
         } else {
-          db.prepare("UPDATE runs SET run_date = ?, distance_miles = ?, duration_minutes = ? WHERE id = ? AND user_id = ?")
-            .run(body.date, Number(body.distanceMiles), Number(body.durationMinutes), id, user.id);
+          db.prepare("UPDATE runs SET run_date = ?, start_time = ?, distance_miles = ?, duration_minutes = ? WHERE id = ? AND user_id = ?")
+            .run(body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes), id, user.id);
         }
-        const run = db.prepare("SELECT id, run_date AS date, distance_miles AS distanceMiles, duration_minutes AS durationMinutes, notes FROM runs WHERE id = ? AND user_id = ?").get(savedId, user.id);
+        const run = db.prepare(`${RUN_COLUMNS} WHERE id = ? AND user_id = ?`).get(savedId, user.id);
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, run });
       }
       const today = new Date();
       const monday = new Date(today);
       monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
-      const runs = db.prepare(`SELECT id, run_date AS date, distance_miles AS distanceMiles,
-        duration_minutes AS durationMinutes, notes FROM runs WHERE user_id = ? ORDER BY run_date DESC, id DESC`).all(user.id);
+      const runs = db.prepare(`${RUN_COLUMNS} WHERE user_id = ? ORDER BY run_date DESC, start_time DESC, id DESC`).all(user.id);
       const { total } = db.prepare("SELECT COALESCE(SUM(distance_miles), 0) AS total FROM runs WHERE user_id = ? AND run_date >= ? AND run_date <= ?")
         .get(user.id, localDate(monday), localDate(today));
       return respond(res, 200, { ok: true, runs, weeklyMiles: Math.round(total * 10) / 10 });

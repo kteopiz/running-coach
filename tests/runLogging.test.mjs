@@ -43,7 +43,7 @@ function shiftDate(date, days) {
 test("a valid run is stored for the signed-in user and invalid fields are rejected", async () => {
   await withApi(async ({ db, request }) => {
     const today = localDate();
-    const valid = { date: today, distanceMiles: 3.5, durationMinutes: 32 };
+    const valid = { date: today, startTime: "08:00", distanceMiles: 3.5, durationMinutes: 32 };
     assert.equal((await request("/runs", "POST", valid)).status, 401);
 
     const sam = await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
@@ -84,10 +84,10 @@ test("the owner can edit a logged run or delete it, and history and weekly miles
   await withApi(async ({ request }) => {
     const today = localDate();
     await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
-    const created = await request("/runs", "POST", { date: today, distanceMiles: 3, durationMinutes: 30 });
+    const created = await request("/runs", "POST", { date: today, startTime: "08:00", distanceMiles: 3, durationMinutes: 30 });
     const id = created.run.id;
 
-    const edited = await request(`/runs/${id}`, "PATCH", { date: today, distanceMiles: 4.5, durationMinutes: 41 });
+    const edited = await request(`/runs/${id}`, "PATCH", { date: today, startTime: "08:00", distanceMiles: 4.5, durationMinutes: 41 });
     assert.equal(edited.status, 200);
     assert.deepEqual(
       { date: edited.run.date, distanceMiles: edited.run.distanceMiles, durationMinutes: edited.run.durationMinutes },
@@ -100,12 +100,12 @@ test("the owner can edit a logged run or delete it, and history and weekly miles
     assert.equal(saved.durationMinutes, 41);
     assert.equal(history.weeklyMiles, 4.5);
 
-    const invalidEdit = await request(`/runs/${id}`, "PATCH", { date: today, distanceMiles: 4.5, durationMinutes: "" });
+    const invalidEdit = await request(`/runs/${id}`, "PATCH", { date: today, startTime: "08:00", distanceMiles: 4.5, durationMinutes: "" });
     assert.equal(invalidEdit.status, 400);
     assert.equal((await request("/runs")).runs.find((run) => run.id === id).durationMinutes, 41);
 
     await request("/login", "POST", { email: "alex@example.com", password: "demo123" });
-    assert.equal((await request(`/runs/${id}`, "PATCH", { date: today, distanceMiles: 9, durationMinutes: 90 })).status, 404);
+    assert.equal((await request(`/runs/${id}`, "PATCH", { date: today, startTime: "08:00", distanceMiles: 9, durationMinutes: 90 })).status, 404);
     assert.equal((await request(`/runs/${id}`, "DELETE")).status, 404);
 
     await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
@@ -121,9 +121,9 @@ test("run history is ordered by date and includes date, distance, and duration",
   await withApi(async ({ request }) => {
     const today = new Date();
     await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
-    await request("/runs", "POST", { date: shiftDate(today, -10), distanceMiles: 2, durationMinutes: 20 });
-    await request("/runs", "POST", { date: shiftDate(today, -2), distanceMiles: 5, durationMinutes: 48 });
-    await request("/runs", "POST", { date: shiftDate(today, -2), distanceMiles: 1, durationMinutes: 12 });
+    await request("/runs", "POST", { date: shiftDate(today, -10), startTime: "08:00", distanceMiles: 2, durationMinutes: 20 });
+    await request("/runs", "POST", { date: shiftDate(today, -2), startTime: "07:00", distanceMiles: 5, durationMinutes: 48 });
+    await request("/runs", "POST", { date: shiftDate(today, -2), startTime: "18:00", distanceMiles: 1, durationMinutes: 12 });
 
     const history = await request("/runs");
     assert.deepEqual(history.runs.map((run) => [run.date, run.distanceMiles, run.durationMinutes]), [
@@ -145,7 +145,7 @@ test("weekly remaining mileage stays at zero when completed distance meets or pa
   await withApi(async ({ request }) => {
     const today = localDate();
     const login = await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
-    await request("/runs", "POST", { date: today, distanceMiles: 6, durationMinutes: 55 });
+    await request("/runs", "POST", { date: today, startTime: "08:00", distanceMiles: 6, durationMinutes: 55 });
     const activity = await request("/runs");
     assert.equal(activity.weeklyMiles, 6);
 
@@ -170,5 +170,19 @@ test("weekly remaining mileage stays at zero when completed distance meets or pa
     for (const completed of [0, 3.9, 4, 6, 20]) {
       assert.ok(weeklyProgress(completed, 4).remainingMiles >= 0);
     }
+  });
+});
+
+test("a start time distinguishes two runs on the same day", async () => {
+  await withApi(async ({ request }) => {
+    const today = localDate();
+    await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
+    const morning = await request("/runs", "POST", { date: today, startTime: "07:15", distanceMiles: 3, durationMinutes: 28 });
+    const evening = await request("/runs", "POST", { date: today, startTime: "18:40", distanceMiles: 5, durationMinutes: 44 });
+    assert.equal(morning.status, 201);
+    assert.equal(morning.run.startTime, "07:15");
+    assert.equal(evening.run.startTime, "18:40");
+    const history = await request("/runs");
+    assert.deepEqual(history.runs.map((run) => run.startTime), ["18:40", "07:15"]);
   });
 });
