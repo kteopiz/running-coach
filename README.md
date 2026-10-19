@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: check setup persistence, schema constraints, and account/API behavior using temporary databases.
+- `npm test`: run five essential tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, and weekly progress using temporary databases.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -71,13 +71,66 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their runs |
 | run_date | TEXT, required | Calendar date in YYYY-MM-DD format |
 | distance_miles | REAL, required | Positive distance in miles |
-| duration_minutes | REAL, optional | Positive duration in minutes |
+| duration_minutes | REAL, nullable for legacy records | Positive duration in minutes; required when creating or editing through the API |
 | notes | TEXT | Description; defaults to an empty string |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-Runs are indexed by owner and date. Sample runs are stored for testing, and the
-API supports reading recent runs and weekly mileage. Displaying runs on the
-dashboard and a form for creating new runs are deferred to a later feature.
+Runs are indexed by owner and date. The dashboard shows all of the signed-in
+user's runs, newest date first (newest ID first for matching dates), with date,
+distance, and duration. Log a run, edit a prefilled entry, or confirm deletion
+from Run history. Successful changes reload both history and weekly progress.
+Empty history, loading, request errors, and retry are supported.
+
+Run date, distance in miles, and duration in minutes are required. Dates must be
+real YYYY-MM-DD calendar dates and cannot be in the future. Distance and duration
+must be finite positive numbers; decimals are supported. Both the form and API
+validate these rules. The server's local calendar date is authoritative.
+Older database records with no duration remain readable as “Not recorded”; editing
+one requires a duration. No schema migration or database reset is needed.
+
+### Run API
+
+All run endpoints require the session cookie. The server chooses the owner from
+the session, ignoring client-supplied ownership fields.
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /api/runs` | All owned runs and `weeklyMiles` (Monday through today, inclusive) |
+| `POST /api/runs` | Create with `{ date, distanceMiles, durationMinutes }`; returns 201 and `run` |
+| `PATCH /api/runs/:id` | Update all three required fields; returns 200 and `run` |
+| `DELETE /api/runs/:id` | Delete the owned run; returns 200 |
+
+Validation returns 400 with field `errors`; signed-out requests return 401.
+Missing runs and another user's runs both return 404 on update/delete. Existing
+notes are preserved when editing. History is unpaginated for this sprint.
+Weekly remaining mileage is clamped to zero; exceeding the goal shows the extra
+distance, while the progress bar stops at 100%.
+
+## Sprint 2 acceptance checks
+
+Automated: `npm test` and `npm run build`. The focused run API test covers real
+create/update/delete requests, missing/non-numeric/nonpositive inputs, invalid
+and future dates, signed-out and cross-user access, full history ordering,
+Monday/previous-Sunday boundaries, and totals after date/distance changes and
+deletion. A small progress test covers unset, incomplete, met, and exceeded goals.
+The database test also verifies run persistence after closing and reopening.
+
+Browser review checklist (use sample accounts or a disposable local database):
+
+1. Sign in as Sam; confirm empty history, zero completed mileage, and no goal.
+2. Log today's run with 3 miles and 30 minutes; confirm the history entry and
+   completed mileage update without reloading the page.
+3. Open Edit; confirm fields are prefilled. Cancel once, then save 4 miles and
+   40 minutes; verify both history and progress. Try blank/zero values and check
+   the field errors; cancel should leave the stored entry unchanged.
+4. Cancel a delete confirmation and verify the entry remains. Confirm deletion
+   and verify the entry disappears and completed mileage returns to zero.
+5. Set a goal, log enough mileage to meet/exceed it, and confirm remaining is zero.
+6. Reload to verify persistence; sign in as Alex to verify separate history.
+
+Implementation verification: all five automated tests and the production build
+passed. Browser interaction checks remain pending because no browser was
+available to the automation environment. No failing automated checks remain.
 
 ### sessions
 

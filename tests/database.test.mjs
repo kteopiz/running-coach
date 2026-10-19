@@ -18,11 +18,13 @@ test("setup seeds once, preserves edits across reopen, and reset restores fixtur
     db.prepare("UPDATE users SET email = ?, weekly_mileage_goal = ? WHERE id = ?").run("changed@example.com", 22, alex.id);
     assert.equal(initializeDatabase(db), false);
     assert.equal(db.prepare("SELECT count(*) AS count FROM runs").get().count, 3);
+    const savedRun = db.prepare("INSERT INTO runs (user_id, run_date, distance_miles, duration_minutes) VALUES (?, ?, ?, ?)").run(alex.id, "2026-10-01", 5, 45);
     db.close();
     db = openDatabase(path);
     initializeDatabase(db);
     assert.equal(db.prepare("SELECT weekly_mileage_goal FROM users WHERE id = ?").get(alex.id).weekly_mileage_goal, 22);
     assert.equal(db.prepare("SELECT email FROM users WHERE id = ?").get(alex.id).email, "changed@example.com");
+    assert.equal(db.prepare("SELECT duration_minutes FROM runs WHERE id = ?").get(savedRun.lastInsertRowid).duration_minutes, 45);
     initializeDatabase(db, { reset: true });
     assert.equal(db.prepare("SELECT email FROM users WHERE id = ?").get(alex.id).email, "alex@example.com");
     assert.equal(db.prepare("SELECT count(*) AS count FROM runs").get().count, 3);
