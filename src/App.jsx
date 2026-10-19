@@ -1,3 +1,4 @@
+import ThemeToggle from "./components/ThemeToggle";
 import { useEffect, useState } from "react";
 import {
   authenticateUser,
@@ -96,7 +97,7 @@ export default function App() {
 
   return (
     <main>
-      <p className="auth-brand">RUNNING COACH</p>
+      <div className="auth-header"><p className="auth-brand">RUNNING COACH</p><ThemeToggle /></div>
       <h1>Your next run starts here.</h1>
       <p className="muted">Log your miles. Find your rhythm. Reach your goals.</p>
       <button type="button" onClick={() => setPage("signin")}>
@@ -140,7 +141,7 @@ function SignUp({ onBack, onSuccess }) {
 
   return (
     <main>
-      <p className="auth-brand">RUNNING COACH</p>
+      <div className="auth-header"><p className="auth-brand">RUNNING COACH</p><ThemeToggle /></div>
       <h1>Sign up</h1>
       <form onSubmit={handleSubmit}>
         <label>
@@ -201,7 +202,7 @@ function SignIn({ onBack, onSuccess, onForgotPassword }) {
 
   return (
     <main>
-      <p className="auth-brand">RUNNING COACH</p>
+      <div className="auth-header"><p className="auth-brand">RUNNING COACH</p><ThemeToggle /></div>
       <h1>Sign in</h1>
       <form onSubmit={handleSubmit}>
         <label>
