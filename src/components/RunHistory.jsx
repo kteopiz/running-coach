@@ -37,10 +37,10 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}
-      {loading ? <p>Loading runs…</p> : null}
+      {loading && runs.length === 0 ? <p>Loading runs…</p> : null}
       {error ? <><p className="error" role="alert">{error}</p><button type="button" onClick={onRefresh}>Retry</button></> : null}
       {!loading && !error && runs.length === 0 ? <p>No runs yet. Log your first run to start tracking your training.</p> : null}
-      {!loading && !error && runs.length > 0 ? (
+      {runs.length > 0 ? (
         <ul className="run-list">
           {runs.map(run => (
             <li className="run-row" key={run.id}>
