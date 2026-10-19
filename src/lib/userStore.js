@@ -26,3 +26,6 @@ export const updateCurrentUser = (fields) => request("/profile", "PATCH", fields
 export const updateCurrentAccount = (fields) => request("/account", "PATCH", fields);
 export const resetPassword = (fields) => request("/reset-password", "POST", fields);
 export const getActivity = () => request("/runs");
+export const createRun = (fields) => request("/runs", "POST", fields);
+export const updateRun = (id, fields) => request(`/runs/${id}`, "PATCH", fields);
+export const deleteRun = (id) => request(`/runs/${id}`, "DELETE");

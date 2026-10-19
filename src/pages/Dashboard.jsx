@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
 
+import RunHistory from "../components/RunHistory";
+
 function formatMiles(value) {
   const rounded = Math.round(Number(value) * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
@@ -12,6 +14,7 @@ export default function Dashboard({ user, onNavigate }) {
     user.weeklyMileageGoal !== null &&
     user.weeklyMileageGoal !== undefined &&
     Number(user.weeklyMileageGoal) > 0;
+  const [revision, setRevision] = useState(0);
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState("");
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -40,7 +43,7 @@ export default function Dashboard({ user, onNavigate }) {
       active = false;
       window.removeEventListener("focus", onFocus);
     };
-  }, [user.weeklyMileageGoal]);
+  }, [user.weeklyMileageGoal, revision]);
 
   const progress = activity ? weeklyProgress(activity.weeklyMiles, user.weeklyMileageGoal) : null;
   const progressPercent = progress?.progress == null ? 0 : Math.round(progress.progress * 100);
@@ -81,7 +84,7 @@ export default function Dashboard({ user, onNavigate }) {
         <h3 id="progress-heading">This week&apos;s progress</h3>
         {loadingActivity ? <p>Loading this week&apos;s mileage…</p> : null}
         {activityError ? <p className="error">{activityError}</p> : null}
-        {progress ? (
+        {progress && !loadingActivity ? (
           <>
             <p className="goal-value">{formatMiles(progress.completedMiles)} miles completed</p>
             {progress.status === "no-goal" ? (
@@ -110,10 +113,8 @@ export default function Dashboard({ user, onNavigate }) {
         ) : null}
       </section>
 
-      <section className="panel" aria-labelledby="runs-heading">
-        <h3 id="runs-heading">Recent runs</h3>
-        <p className="placeholder">Coming soon — your logged runs will appear here.</p>
-      </section>
+      <RunHistory runs={activity?.runs || []} loading={loadingActivity}
+        error={activityError} onRefresh={() => setRevision(value => value + 1)} />
 
       <section className="panel" aria-labelledby="coach-heading">
         <h3 id="coach-heading">Today&apos;s recommendation</h3>
