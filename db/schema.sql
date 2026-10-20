@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS runs (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   run_date TEXT NOT NULL CHECK (date(run_date) IS NOT NULL AND date(run_date) = run_date),
+  start_time TEXT CHECK (start_time IS NULL OR (length(start_time) = 5 AND start_time GLOB '[0-2][0-9]:[0-5][0-9]' AND start_time <= '23:59')),
   distance_miles REAL NOT NULL CHECK (distance_miles > 0),
   duration_minutes REAL CHECK (duration_minutes > 0),
   notes TEXT NOT NULL DEFAULT '',

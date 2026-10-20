@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
 
@@ -19,26 +19,29 @@ export default function Dashboard({ user, onNavigate }) {
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState("");
   const [loadingActivity, setLoadingActivity] = useState(true);
+  const hasActivity = useRef(false);
 
   useEffect(() => {
     let active = true;
 
-    async function load(isRefresh) {
-      if (!isRefresh) setLoadingActivity(true);
+    async function load() {
+      const refresh = hasActivity.current;
+      if (!refresh) setLoadingActivity(true);
       const result = await getActivity();
       if (!active) return;
       if (!result.ok) {
-        setActivity(null);
+        if (!refresh) setActivity(null);
         setActivityError(result.error || "Could not load this week's mileage.");
       } else {
         setActivity(result);
         setActivityError("");
+        hasActivity.current = true;
       }
       setLoadingActivity(false);
     }
 
-    load(false);
-    const onFocus = () => load(true);
+    load();
+    const onFocus = () => load();
     window.addEventListener("focus", onFocus);
     return () => {
       active = false;
