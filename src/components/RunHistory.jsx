@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { createRun, updateRun, deleteRun } from "../lib/userStore";
 import { localDate, localTime, validateRunFields } from "../lib/runValidation";
+import { sortRuns } from "../lib/runSort";
+
+const SORTS = [
+  ["newest", "Newest first"],
+  ["oldest", "Oldest first"],
+  ["distance-desc", "Longest distance"],
+  ["distance-asc", "Shortest distance"],
+  ["duration-desc", "Longest duration"],
+  ["duration-asc", "Shortest duration"],
+];
 
 function formatClock(value) {
   if (!value) return "Time not recorded";
@@ -20,6 +30,8 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [actionError, setActionError] = useState("");
+  const [sort, setSort] = useState("newest");
+  const ordered = sortRuns(runs, sort);
 
   async function handleDelete(run) {
     if (pending || !window.confirm(`Delete the run on ${runLabel(run)}? This cannot be undone.`)) return;
@@ -47,6 +59,11 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
         setActionError("");
         setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "", notes: "" });
       }}>+ Log a run</button></div>
+      <label className="sort-control">Sort
+        <select value={sort} onChange={event => setSort(event.target.value)} aria-label="Sort run history">
+          {SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </label>
       {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}
@@ -55,7 +72,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       {!loading && !error && runs.length === 0 ? <p>No runs yet. Log your first run to start tracking your training.</p> : null}
       {runs.length > 0 ? (
         <ul className="run-list">
-          {runs.map(run => (
+          {ordered.map(run => (
             <li className="run-row" key={run.id}>
               <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
               <div className="run-stat"><strong>{run.distanceMiles}<span> mi</span></strong><span className="muted">Distance</span></div>

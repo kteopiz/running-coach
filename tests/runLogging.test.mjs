@@ -4,6 +4,7 @@ import { once } from "node:events";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { createApi } from "../server/api.mjs";
 import { weeklyProgress } from "../src/lib/weeklyProgress.js";
+import { sortRuns } from "../src/lib/runSort.js";
 import { localDate } from "../src/lib/runValidation.js";
 
 async function withApi(run) {
@@ -206,4 +207,18 @@ test("a start time and notes tell same-day runs apart and survive an edit", asyn
     });
     assert.equal(kept.run.notes, "Tempo");
   });
+});
+
+test("history can be sorted by date, distance, and duration in either direction", () => {
+  const runs = [
+    { id: 1, date: "2026-10-19", startTime: "07:00", distanceMiles: 3, durationMinutes: 30 },
+    { id: 2, date: "2026-10-19", startTime: "18:00", distanceMiles: 6, durationMinutes: 50 },
+    { id: 3, date: "2026-10-10", startTime: "08:00", distanceMiles: 2, durationMinutes: null },
+  ];
+  assert.deepEqual(sortRuns(runs, "newest").map((run) => run.id), [2, 1, 3]);
+  assert.deepEqual(sortRuns(runs, "oldest").map((run) => run.id), [3, 1, 2]);
+  assert.deepEqual(sortRuns(runs, "distance-desc").map((run) => run.id), [2, 1, 3]);
+  assert.deepEqual(sortRuns(runs, "distance-asc").map((run) => run.id), [3, 1, 2]);
+  assert.deepEqual(sortRuns(runs, "duration-desc").map((run) => run.id), [2, 1, 3]);
+  assert.deepEqual(sortRuns(runs, "duration-asc").map((run) => run.id), [1, 2, 3]);
 });
