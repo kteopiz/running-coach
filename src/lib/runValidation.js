@@ -6,7 +6,7 @@ export function localTime(date = new Date()) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-export function validateRunFields({ date, distanceMiles, durationMinutes, startTime }, today = localDate()) {
+export function validateRunFields({ date, distanceMiles, durationMinutes, startTime, notes }, today = localDate()) {
   const errors = {};
   const parsed = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
     ? new Date(`${date}T00:00:00Z`) : null;
@@ -17,6 +17,9 @@ export function validateRunFields({ date, distanceMiles, durationMinutes, startT
   }
   if (typeof startTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)) {
     errors.startTime = "Enter the time the run started.";
+  }
+  if (notes != null && notes !== "" && (typeof notes !== "string" || notes.trim().length > 500)) {
+    errors.notes = "Notes must be 500 characters or fewer.";
   }
   for (const [field, value, label] of [
     ["distanceMiles", distanceMiles, "Distance"],

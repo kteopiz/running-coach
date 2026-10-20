@@ -93,6 +93,7 @@ p { font-size: 14px; line-height: 1.6; }
 .run-date > div, .run-stat { display: flex; flex-direction: column; gap: 4px; }
 .run-date .muted, .run-stat .muted { font-size: 11px; font-weight: 400; }
 .run-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; background: var(--accent-soft); color: var(--accent); border-radius: 50%; font-size: 21px; }
+.run-notes { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
 .run-stat strong { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .run-stat strong span { font-size: 11px; font-weight: 400; color: var(--muted); }
 .row-actions { display: flex; gap: 4px; }
@@ -111,13 +112,14 @@ p { font-size: 14px; line-height: 1.6; }
 .panel-note { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 8px; color: var(--muted); font-size: 12px; }
 form { display: grid; gap: 17px; }
 label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 600; min-width: 0; }
-input { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--input-border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--surface); font-size: 14px; }
-input[aria-invalid="true"] { border-color: var(--danger); }
+input, textarea { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--input-border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--surface); font: inherit; font-size: 14px; }
+textarea { resize: vertical; }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--danger); }
 .error { color: var(--danger); font-size: 12px; }
 .success, .history-panel > [role="status"] { color: var(--success); font-size: 13px; }
 .history-panel > p { margin-bottom: 12px; }
 .run-form { grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; padding: 18px; margin-bottom: 18px; gap: 14px; }
-.run-form h3, .run-form > .error, .form-actions { grid-column: 1 / -1; }
+.run-form h3, .run-form > .error, .run-form .notes-field, .form-actions { grid-column: 1 / -1; }
 .form-actions { display: flex; gap: 8px; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
 .section-description { margin: 7px 0 24px; }

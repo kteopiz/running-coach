@@ -45,7 +45,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       <button className="primary-button" type="button" disabled={pending || Boolean(editing)} onClick={() => {
         setMessage("");
         setActionError("");
-        setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "" });
+        setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "", notes: "" });
       }}>+ Log a run</button></div>
       {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
@@ -60,6 +60,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
               <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
               <div className="run-stat"><strong>{run.distanceMiles}<span> mi</span></strong><span className="muted">Distance</span></div>
               <div className="run-stat"><strong>{run.durationMinutes ?? "—"}<span>{run.durationMinutes == null ? "" : " min"}</span></strong><span className="muted">{run.durationMinutes == null ? "Not recorded" : "Duration"}</span></div>
+              {run.notes ? <p className="run-notes">{run.notes}</p> : null}
               <div className="row-actions">
               <button type="button" disabled={pending || Boolean(editing)} onClick={() => {
                 setMessage("");
@@ -76,7 +77,13 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
 }
 
 function RunForm({ run, onSaved, onCancel }) {
-  const [fields, setFields] = useState({ date: run.date, startTime: run.startTime || "", distanceMiles: run.distanceMiles, durationMinutes: run.durationMinutes ?? "" });
+  const [fields, setFields] = useState({
+    date: run.date,
+    startTime: run.startTime || "",
+    distanceMiles: run.distanceMiles,
+    durationMinutes: run.durationMinutes ?? "",
+    notes: run.notes ?? "",
+  });
   const [errors, setErrors] = useState({});
   const [pending, setPending] = useState(false);
 
@@ -112,6 +119,13 @@ function RunForm({ run, onSaved, onCancel }) {
           {errors[name] ? <span className="error" id={`run-${name}-error`}>{errors[name]}</span> : null}
         </label>
       ))}
+      <label className="notes-field">
+        Notes
+        <textarea name="notes" rows={3} maxLength={500} disabled={pending} value={fields.notes}
+          onChange={event => setFields({ ...fields, notes: event.target.value })}
+          aria-invalid={Boolean(errors.notes)} aria-describedby={errors.notes ? "run-notes-error" : undefined} />
+        {errors.notes ? <span className="error" id="run-notes-error">{errors.notes}</span> : null}
+      </label>
       {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
       <div className="form-actions"><button type="submit" disabled={pending}>{pending ? "Saving…" : "Save run"}</button>
       <button type="button" disabled={pending} onClick={onCancel}>Cancel</button></div>

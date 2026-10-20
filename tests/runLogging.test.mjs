@@ -173,16 +173,37 @@ test("weekly remaining mileage stays at zero when completed distance meets or pa
   });
 });
 
-test("a start time distinguishes two runs on the same day", async () => {
+test("a start time and notes tell same-day runs apart and survive an edit", async () => {
   await withApi(async ({ request }) => {
     const today = localDate();
     await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
-    const morning = await request("/runs", "POST", { date: today, startTime: "07:15", distanceMiles: 3, durationMinutes: 28 });
-    const evening = await request("/runs", "POST", { date: today, startTime: "18:40", distanceMiles: 5, durationMinutes: 44 });
+    const morning = await request("/runs", "POST", {
+      date: today, startTime: "07:15", distanceMiles: 3, durationMinutes: 28, notes: "Easy miles",
+    });
+    const evening = await request("/runs", "POST", {
+      date: today, startTime: "18:40", distanceMiles: 5, durationMinutes: 44, notes: "  Tempo  ",
+    });
     assert.equal(morning.status, 201);
+    assert.equal(evening.status, 201);
     assert.equal(morning.run.startTime, "07:15");
-    assert.equal(evening.run.startTime, "18:40");
+    assert.equal(evening.run.notes, "Tempo");
+
     const history = await request("/runs");
-    assert.deepEqual(history.runs.map((run) => run.startTime), ["18:40", "07:15"]);
+    assert.deepEqual(history.runs.map((run) => [run.startTime, run.notes]), [
+      ["18:40", "Tempo"],
+      ["07:15", "Easy miles"],
+    ]);
+
+    const edited = await request(`/runs/${morning.run.id}`, "PATCH", {
+      date: today, startTime: "07:30", distanceMiles: 3.2, durationMinutes: 30, notes: "Easy miles, felt good",
+    });
+    assert.equal(edited.status, 200);
+    assert.equal(edited.run.startTime, "07:30");
+    assert.equal(edited.run.notes, "Easy miles, felt good");
+
+    const kept = await request(`/runs/${evening.run.id}`, "PATCH", {
+      date: today, startTime: "18:40", distanceMiles: 5, durationMinutes: 44,
+    });
+    assert.equal(kept.run.notes, "Tempo");
   });
 });

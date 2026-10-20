@@ -146,14 +146,16 @@ export function createApi(db) {
         const body = await readBody(req);
         const errors = validateRunFields(body);
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
+        const notes = typeof body.notes === "string" ? body.notes.trim() : null;
         let savedId = id;
         if (req.method === "POST") {
-          const result = db.prepare("INSERT INTO runs (user_id, run_date, start_time, distance_miles, duration_minutes) VALUES (?, ?, ?, ?, ?)")
-            .run(user.id, body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes));
+          const result = db.prepare("INSERT INTO runs (user_id, run_date, start_time, distance_miles, duration_minutes, notes) VALUES (?, ?, ?, ?, ?, ?)")
+            .run(user.id, body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes), notes ?? "");
           savedId = Number(result.lastInsertRowid);
         } else {
-          db.prepare("UPDATE runs SET run_date = ?, start_time = ?, distance_miles = ?, duration_minutes = ? WHERE id = ? AND user_id = ?")
-            .run(body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes), id, user.id);
+          const kept = notes ?? db.prepare("SELECT notes FROM runs WHERE id = ? AND user_id = ?").get(id, user.id).notes;
+          db.prepare("UPDATE runs SET run_date = ?, start_time = ?, distance_miles = ?, duration_minutes = ?, notes = ? WHERE id = ? AND user_id = ?")
+            .run(body.date, body.startTime, Number(body.distanceMiles), Number(body.durationMinutes), kept, id, user.id);
         }
         const run = db.prepare(`${RUN_COLUMNS} WHERE id = ? AND user_id = ?`).get(savedId, user.id);
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, run });

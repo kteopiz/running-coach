@@ -42,7 +42,7 @@ test("run API validates inputs, isolates owners, and refreshes sorted history an
     assert.equal((await request("/runs")).weeklyMiles, 0);
     const invalid = [
       {}, ...["date", "startTime", "distanceMiles", "durationMinutes"].map(key => ({ ...valid, [key]: "" })),
-      { ...valid, startTime: "25:99" },
+      { ...valid, startTime: "25:99" }, { ...valid, notes: "x".repeat(501) },
       { ...valid, date: "2026-02-30" }, { ...valid, date: localDate(tomorrow) },
       ...["distanceMiles", "durationMinutes"].flatMap(key => ["abc", 0, -1, null, true, [], "1e309"].map(value => ({ ...valid, [key]: value }))),
     ];
