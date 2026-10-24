@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { RECOMMENDATION_RULES, clampDaysLeft, dailyCap, daysLeftInWeek, recommendToday } from "../src/lib/recommendation.js";
+import { RECOMMENDATION_RULES, clampDaysLeft, dailyCap, daysLeftInWeek, recommendToday, remainingMiles } from "../src/lib/recommendation.js";
 
 test("recommendation inputs stay inside the stated bounds", () => {
   assert.equal(daysLeftInWeek("2026-10-19"), 7);
@@ -113,4 +113,14 @@ test("rest and reduced-mileage safety conditions limit today's distance", () => 
   assert.equal(frequent.status, "rest");
   assert.equal(frequent.todayMiles, 0);
   assert.equal(frequent.remainingMiles, 14);
+});
+
+test("remaining mileage has a zero floor", () => {
+  assert.equal(remainingMiles(-3, 10), 10);
+  assert.equal(remainingMiles(4.5, 15), 10.5);
+  assert.equal(remainingMiles(15, 15), 0);
+  assert.equal(remainingMiles(40, 10), 0);
+  assert.equal(remainingMiles(3, null), null);
+  assert.equal(recommendToday({ completedMiles: 40, goalMiles: 10, daysLeft: 3, today: monday }).todayMiles, 0);
+  assert.equal(recommendToday({ completedMiles: -3, goalMiles: 10, daysLeft: 7, today: monday }).remainingMiles, 10);
 });
