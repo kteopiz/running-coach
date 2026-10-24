@@ -1,3 +1,5 @@
+import { localDate } from "./runValidation.js";
+
 // Inputs are clamped to these bounds before a distance is chosen.
 export const RECOMMENDATION_RULES = {
   minDaysLeft: 1,
@@ -38,10 +40,24 @@ export function dailyCap(goalMiles) {
   return roundTenth(Math.min(RECOMMENDATION_RULES.maxDailyMiles, goal * RECOMMENDATION_RULES.maxGoalShare));
 }
 
-export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, today = new Date() } = {}) {
+function datesThisWeek(runDates, today) {
+  const date = asDate(today);
+  const todayString = localDate(date);
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  const mondayString = localDate(monday);
+  return [...new Set((Array.isArray(runDates) ? runDates : []).filter(
+    (runDate) => typeof runDate === "string" && runDate >= mondayString && runDate <= todayString,
+  ))];
+}
+
+export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, runDates = [], today = new Date() } = {}) {
+  const todayString = localDate(asDate(today));
   const days = clampDaysLeft(daysLeft, today);
   const goal = Number(goalMiles);
-  const base = { daysLeft: days, ranToday: false };
+  const weekDates = datesThisWeek(runDates, today);
+  const ranToday = weekDates.includes(todayString);
+  const base = { daysLeft: days, ranToday };
 
   if (!Number.isFinite(goal) || goal <= 0) {
     return {
@@ -56,22 +72,29 @@ export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, today 
   const completed = Number.isFinite(Number(completedMiles)) ? Number(completedMiles) : 0;
   const remaining = roundTenth(Math.max(0, goal - completed));
   if (remaining === 0) {
-    return {
-      ...base,
-      todayMiles: 0,
-      remainingMiles: 0,
-      status: "rest",
-      message: "Your weekly goal is complete. Rest today.",
-    };
+    return { ...base, todayMiles: 0, remainingMiles: 0, status: "rest", message: "Your weekly goal is complete. Rest today." };
+  }
+  if (weekDates.length >= RECOMMENDATION_RULES.restAfterRunDays) {
+    return { ...base, todayMiles: 0, remainingMiles: remaining, status: "rest", message: "You have run enough days this week. Rest today." };
   }
 
-  const todayMiles = roundTenth(Math.min(remaining / days, dailyCap(goal), remaining));
+  const cap = dailyCap(goal);
+  const evenShare = remaining / days;
+  let todayMiles = roundTenth(Math.min(evenShare, cap, remaining));
+  let status = todayMiles < roundTenth(evenShare) ? "reduced" : "suggested";
+
+  if (ranToday) {
+    todayMiles = roundTenth(Math.max(0, todayMiles / 2));
+    status = todayMiles === 0 ? "rest" : "reduced";
+  }
+
+  if (status === "rest") {
+    return { ...base, todayMiles: 0, remainingMiles: remaining, status, message: "You already ran today. Rest instead of adding more miles." };
+  }
+  if (status === "reduced") {
+    const reason = ranToday ? "You already ran today." : "That is less than an even split, so today stays manageable.";
+    return { ...base, todayMiles, remainingMiles: remaining, status, message: `${reason} Keep any further running to ${todayMiles} miles.` };
+  }
   const start = completed <= 0 ? "No runs yet this week." : "You are partway to your goal.";
-  return {
-    ...base,
-    todayMiles,
-    remainingMiles: remaining,
-    status: "suggested",
-    message: `${start} Run ${todayMiles} miles today.`,
-  };
+  return { ...base, todayMiles, remainingMiles: remaining, status, message: `${start} Run ${todayMiles} miles today.` };
 }

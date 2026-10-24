@@ -79,3 +79,38 @@ test("adding, editing, or deleting a run changes the recommendation", () => {
   assert.equal(removed.todayMiles, before.todayMiles);
   assert.equal(removed.message, before.message);
 });
+
+test("rest and reduced-mileage safety conditions limit today's distance", () => {
+  const reduced = recommendToday({
+    completedMiles: 2,
+    goalMiles: 20,
+    daysLeft: 1,
+    runDates: ["2026-10-19"],
+    today: "2026-10-25",
+  });
+  assert.equal(reduced.remainingMiles, 18);
+  assert.equal(reduced.status, "reduced");
+  assert.equal(reduced.todayMiles, dailyCap(20));
+  assert.ok(reduced.todayMiles < 18);
+
+  const sameDay = recommendToday({
+    completedMiles: 3,
+    goalMiles: 14,
+    daysLeft: 7,
+    runDates: [monday],
+    today: monday,
+  });
+  assert.equal(sameDay.status, "reduced");
+  assert.ok(sameDay.todayMiles < 2);
+
+  const frequent = recommendToday({
+    completedMiles: 6,
+    goalMiles: 20,
+    daysLeft: 4,
+    runDates: ["2026-10-19", "2026-10-20", "2026-10-21"],
+    today: "2026-10-21",
+  });
+  assert.equal(frequent.status, "rest");
+  assert.equal(frequent.todayMiles, 0);
+  assert.equal(frequent.remainingMiles, 14);
+});
