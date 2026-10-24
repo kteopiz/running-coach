@@ -64,3 +64,18 @@ test("today's distance stays bounded for no runs, a partial goal, and a complete
   assert.equal(missing.todayMiles, null);
   assert.equal(missing.remainingMiles, null);
 });
+
+test("adding, editing, or deleting a run changes the recommendation", () => {
+  const goal = 14;
+  const before = recommendToday({ completedMiles: 0, goalMiles: goal, daysLeft: 7, runDates: [], today: monday });
+  const added = recommendToday({ completedMiles: 3, goalMiles: goal, daysLeft: 7, runDates: [monday], today: monday });
+  const edited = recommendToday({ completedMiles: 8, goalMiles: goal, daysLeft: 7, runDates: [monday], today: monday });
+  const removed = recommendToday({ completedMiles: 0, goalMiles: goal, daysLeft: 7, runDates: [], today: monday });
+
+  assert.notEqual(added.todayMiles, before.todayMiles);
+  assert.notEqual(added.message, before.message);
+  assert.notEqual(edited.todayMiles, added.todayMiles);
+  assert.notEqual(edited.remainingMiles, added.remainingMiles);
+  assert.equal(removed.todayMiles, before.todayMiles);
+  assert.equal(removed.message, before.message);
+});
