@@ -146,7 +146,7 @@ available to the automation environment. No failing automated checks remain.
 | weight_lb | REAL, required | Profile weight in pounds copied when the meal is logged |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date. `POST /api/meals` saves `{ date, time, kind, description, calories }` for the signed-in runner and copies the profile weight. `GET /api/meals` returns only that runner's meals.
+The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date. `POST /api/meals` saves `{ date, time, kind, description, calories }` for the signed-in runner and copies the profile weight. `GET /api/meals` returns only that runner's meals. `PATCH /api/meals/:id` updates an owned meal and keeps the recorded weight. `DELETE /api/meals/:id` removes it. Another runner's meal returns 404.
 
 ### sessions
 

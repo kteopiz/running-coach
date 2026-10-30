@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createMeal, getMeals } from "../lib/userStore";
+import { createMeal, deleteMeal, getMeals, updateMeal } from "../lib/userStore";
 import { localDate } from "../lib/runValidation";
 import { MEAL_KINDS, validateMealFields } from "../lib/meals";
 
@@ -19,7 +19,9 @@ export default function MealLog({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
+  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [actionError, setActionError] = useState("");
   const [revision, setRevision] = useState(0);
   const today = localDate();
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) && selectedDate <= today;
@@ -49,8 +51,20 @@ export default function MealLog({ user }) {
     };
   }, [revision]);
 
+  async function handleDelete(meal) {
+    if (pending || !window.confirm(`Delete the ${kindLabel(meal.kind).toLowerCase()} on ${meal.date} (${meal.calories} cal)? This cannot be undone.`)) return;
+    setPending(true);
+    setMessage("");
+    setActionError("");
+    const result = await deleteMeal(meal.id);
+    setPending(false);
+    if (!result.ok) return setActionError(result.error);
+    setMessage("Meal deleted.");
+    setRevision((value) => value + 1);
+  }
+
   function handleSaved(meal) {
-    setMessage("Meal logged.");
+    setMessage(editing.id ? "Meal updated." : "Meal logged.");
     setEditing(null);
     setSelectedDate(meal.date);
     setRevision((value) => value + 1);
@@ -65,16 +79,18 @@ export default function MealLog({ user }) {
         </div>
         <label className="meal-date">
           Date
-          <input type="date" max={today} value={selectedDate} disabled={Boolean(editing)} onChange={(event) => { setSelectedDate(event.target.value); setMessage(""); }} />
+          <input type="date" max={today} value={selectedDate} disabled={Boolean(editing)} onChange={(event) => { setSelectedDate(event.target.value); setMessage(""); setActionError(""); }} />
         </label>
-        <button className="primary-button" type="button" disabled={Boolean(editing) || !dateReady} onClick={() => {
+        <button className="primary-button" type="button" disabled={pending || Boolean(editing) || !dateReady} onClick={() => {
           setMessage("");
+          setActionError("");
           setEditing({ date: selectedDate, time: "", kind: "", description: "", calories: "" });
         }}>+ Log a meal</button>
       </div>
       {!dateReady ? <p className="error" role="alert">Enter a valid meal date. Future dates are not allowed.</p> : null}
-      {editing ? <MealForm key="new" meal={editing} user={user} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
+      {editing ? <MealForm key={editing.id || "new"} meal={editing} user={user} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
+      {actionError ? <p className="error" role="alert">{actionError}</p> : null}
       {loading ? <p>Loading meals…</p> : null}
       {error ? <><p className="error" role="alert">{error}</p><button type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button></> : null}
       {!loading && !error && dateReady && dayMeals.length === 0 ? <p>No meals on this date.</p> : null}
@@ -86,6 +102,10 @@ export default function MealLog({ user }) {
               <div className="run-stat"><strong>{formatTime(meal.time)}</strong><span className="muted">Time</span></div>
               <div className="run-stat"><strong>{meal.calories.toLocaleString()}<span> cal</span></strong><span className="muted">Calories</span></div>
               <div className="run-stat"><strong>{meal.weightLb}<span> lb</span></strong><span className="muted">Profile weight</span></div>
+              <div className="row-actions">
+                <button type="button" disabled={pending || Boolean(editing)} aria-label={`Edit ${kindLabel(meal.kind).toLowerCase()} on ${meal.date}`} onClick={() => { setMessage(""); setActionError(""); setEditing(meal); }}>Edit</button>
+                <button className="danger-button" type="button" disabled={pending || Boolean(editing)} aria-label={`Delete ${kindLabel(meal.kind).toLowerCase()} on ${meal.date}`} onClick={() => handleDelete(meal)}>Delete</button>
+              </div>
             </li>
           ))}
         </ul>
@@ -116,15 +136,15 @@ function MealForm({ meal, user, onSaved, onCancel }) {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setPending(true);
-    const result = await createMeal(fields);
+    const result = meal.id ? await updateMeal(meal.id, fields) : await createMeal(fields);
     setPending(false);
     if (!result.ok) return setErrors(result.errors || { form: result.error });
     onSaved(result.meal);
   }
 
   return (
-    <form className="meal-form" onSubmit={handleSubmit} noValidate aria-label="Log a meal">
-      <h3>Log a meal</h3>
+    <form className="meal-form" onSubmit={handleSubmit} noValidate aria-label={meal.id ? "Edit meal" : "Log a meal"}>
+      <h3>{meal.id ? "Edit meal" : "Log a meal"}</h3>
       <label>
         Date
         <input name="date" type="date" required disabled={pending} max={localDate()} value={fields.date} onChange={(event) => update("date", event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? "meal-date-error" : undefined} />
@@ -153,7 +173,7 @@ function MealForm({ meal, user, onSaved, onCancel }) {
         <input name="description" type="text" required disabled={pending} maxLength="200" value={fields.description} onChange={(event) => update("description", event.target.value)} aria-invalid={Boolean(errors.description)} aria-describedby={errors.description ? "meal-description-error" : undefined} />
         {errors.description ? <span className="error" id="meal-description-error">{errors.description}</span> : null}
       </label>
-      <p className="weight-note">Profile weight saved with this meal: {user.weight} lb. This comes from your profile.</p>
+      <p className="weight-note">{meal.id ? `Profile weight recorded with this meal: ${meal.weightLb} lb. Editing does not change it.` : `Profile weight saved with this meal: ${user.weight} lb. This comes from your profile.`}</p>
       {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
       <div className="form-actions">
         <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save meal"}</button>

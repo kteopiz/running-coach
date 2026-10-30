@@ -107,8 +107,10 @@ export function createApi(db) {
         return respond(res, 200, { ok: true });
       }
       const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
+      const mealMatch = path.match(/^\/api\/meals\/([1-9]\d*)$/);
       const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
-      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation) fail("Endpoint not found.", 404);
+      const mealMutation = mealMatch && ["PATCH", "DELETE"].includes(req.method);
+      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation && !mealMutation) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
       if (!user) fail("You must be signed in.", 401);
       if (route === "PATCH /api/profile") {
@@ -158,7 +160,15 @@ export function createApi(db) {
         const run = db.prepare("SELECT id, run_date AS date, distance_miles AS distanceMiles, duration_minutes AS durationMinutes, notes FROM runs WHERE id = ? AND user_id = ?").get(savedId, user.id);
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, run });
       }
-      if (route === "GET /api/meals" || route === "POST /api/meals") {
+      if (route === "GET /api/meals" || route === "POST /api/meals" || mealMutation) {
+        const id = mealMatch ? Number(mealMatch[1]) : null;
+        if (mealMutation && (!Number.isSafeInteger(id) || !db.prepare("SELECT id FROM meals WHERE id = ? AND user_id = ?").get(id, user.id))) {
+          fail("Meal not found.", 404);
+        }
+        if (req.method === "DELETE") {
+          db.prepare("DELETE FROM meals WHERE id = ? AND user_id = ?").run(id, user.id);
+          return respond(res, 200, { ok: true });
+        }
         if (req.method === "GET") {
           const meals = db.prepare(`SELECT ${mealColumns} FROM meals WHERE user_id = ? ORDER BY meal_date DESC, meal_time ASC, id ASC`).all(user.id);
           return respond(res, 200, { ok: true, meals });
@@ -166,10 +176,19 @@ export function createApi(db) {
         const body = await readBody(req);
         const errors = validateMealFields(body);
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
-        const result = db.prepare(`INSERT INTO meals (user_id, meal_date, meal_time, kind, description, calories, weight_lb)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`).run(user.id, body.date, body.time, body.kind, body.description.trim(), Number(body.calories), user.weight);
-        const meal = db.prepare(`SELECT ${mealColumns} FROM meals WHERE id = ? AND user_id = ?`).get(Number(result.lastInsertRowid), user.id);
-        return respond(res, 201, { ok: true, meal });
+        const description = body.description.trim();
+        const calories = Number(body.calories);
+        let savedId = id;
+        if (req.method === "POST") {
+          const result = db.prepare(`INSERT INTO meals (user_id, meal_date, meal_time, kind, description, calories, weight_lb)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`).run(user.id, body.date, body.time, body.kind, description, calories, user.weight);
+          savedId = Number(result.lastInsertRowid);
+        } else {
+          db.prepare(`UPDATE meals SET meal_date = ?, meal_time = ?, kind = ?, description = ?, calories = ? WHERE id = ? AND user_id = ?`)
+            .run(body.date, body.time, body.kind, description, calories, id, user.id);
+        }
+        const meal = db.prepare(`SELECT ${mealColumns} FROM meals WHERE id = ? AND user_id = ?`).get(savedId, user.id);
+        return respond(res, req.method === "POST" ? 201 : 200, { ok: true, meal });
       }
       const today = new Date();
       const monday = new Date(today);

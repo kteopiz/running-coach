@@ -71,3 +71,52 @@ test("a meal is saved for the selected date and signed-in user", async () => {
     db.close();
   }
 });
+
+test("meals can be edited and deleted by their owner", async () => {
+  const db = openDatabase(":memory:");
+  initializeDatabase(db);
+  const server = createApi(db);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const url = `http://127.0.0.1:${server.address().port}/api`;
+  let cookie = "";
+  const request = async (path, method = "GET", body) => {
+    const response = await fetch(url + path, {
+      method,
+      headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...(cookie ? { Cookie: cookie } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const session = response.headers.get("set-cookie");
+    if (session) cookie = session.split(";")[0];
+    return { status: response.status, ...await response.json() };
+  };
+  const today = localDate();
+  const fields = { date: today, time: "08:00", kind: "breakfast", description: "Oatmeal", calories: 400 };
+  try {
+    assert.equal((await request("/meals/1", "PATCH", fields)).status, 401);
+    assert.equal((await request("/meals/1", "DELETE")).status, 401);
+    await request("/login", "POST", { email: "alex@example.com", password: "demo123" });
+    const created = await request("/meals", "POST", fields);
+    const edited = await request(`/meals/${created.meal.id}`, "PATCH", { ...fields, description: "Oatmeal and fruit", calories: 500 });
+    assert.equal(edited.status, 200);
+    assert.equal(edited.meal.calories, 500);
+    assert.equal(edited.meal.weightLb, 145);
+    await request("/profile", "PATCH", { age: 25, height: 67, weight: 160, weeklyMileageGoal: 15 });
+    const kept = await request(`/meals/${created.meal.id}`, "PATCH", { ...fields, calories: 500 });
+    assert.equal(kept.meal.weightLb, 145);
+    const mealId = created.meal.id;
+    await request("/session", "DELETE");
+    cookie = "";
+    await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
+    assert.equal((await request(`/meals/${mealId}`, "DELETE")).status, 404);
+    await request("/session", "DELETE");
+    cookie = "";
+    await request("/login", "POST", { email: "alex@example.com", password: "demo123" });
+    assert.equal((await request(`/meals/${mealId}`, "DELETE")).status, 200);
+    assert.equal((await request("/meals")).meals.some((meal) => meal.id === mealId), false);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    db.close();
+  }
+});
