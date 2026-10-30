@@ -85,6 +85,14 @@ p { font-size: 14px; line-height: 1.6; }
 .progress-fill { height: 100%; background: var(--accent); border-radius: inherit; }
 .progress-caption { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 12px; }
 .progress-caption strong { color: var(--text); white-space: nowrap; font-weight: 600; }
+.calorie-panel { margin-top: 22px; }
+.calorie-panel .metric-label { margin-top: 14px; }
+.calorie-panel .metric-value { margin: 4px 0 8px; }
+.calorie-panel .muted { max-width: 62ch; }
+.goal-history { list-style: none; margin: 4px 0 0; padding: 0; }
+.goal-history li { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border); padding: 12px 0; font-size: 14px; }
+.goal-history span { color: var(--muted); }
+.calorie-goals { margin-top: 22px; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr); gap: 22px; margin-top: 22px; align-items: start; }
 .run-list { list-style: none; margin: 0; padding: 0; }
 .run-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) minmax(65px, .7fr) minmax(65px, .7fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--border); padding: 18px 0; }

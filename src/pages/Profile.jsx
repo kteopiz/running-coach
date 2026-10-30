@@ -1,6 +1,8 @@
 import AppShell from "../components/AppShell";
-import { useState } from "react";
-import { MEASUREMENT_MIN, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { useEffect, useState } from "react";
+import { CALORIE_ESTIMATE_NOTE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
+import { localDate } from "../lib/runValidation";
+import { MEASUREMENT_MIN, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -14,6 +16,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [pending, setPending] = useState(false);
+  const calorieEstimate = estimateDailyCalories({ age, height, weight, weeklyMileageGoal });
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -115,6 +118,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <span className="error">{errors.weeklyMileageGoal}</span>
           ) : null}
         </label>
+        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {calorieEstimate.calories.toLocaleString()} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">Enter a weekly mileage goal to see the educational calorie estimate.</p>}
 
         {errors.form ? <p className="error">{errors.form}</p> : null}
         {success ? <p className="success">{success}</p> : null}
@@ -123,7 +127,90 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       </form>
       </section>
       </div>
+      <CalorieGoals />
     </AppShell>
+  );
+}
+
+function formatDay(value) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function CalorieGoals() {
+  const [goals, setGoals] = useState([]);
+  const [effectiveDate, setEffectiveDate] = useState(localDate());
+  const [calories, setCalories] = useState("");
+  const [lookupDate, setLookupDate] = useState(localDate());
+  const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getCalorieGoals().then((result) => {
+      if (!active) return;
+      if (!result.ok) setLoadError(result.error || "Could not load calorie goals.");
+      else setGoals(result.goals || []);
+    });
+    return () => { active = false; };
+  }, []);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (pending) return;
+    setMessage("");
+    const nextErrors = validateCalorieGoal({ effectiveDate, calories });
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    setPending(true);
+    const result = await saveCalorieGoal({ effectiveDate, calories: Number(calories) });
+    setPending(false);
+    if (!result.ok) return setErrors({ form: result.error });
+    setGoals(result.goals || []);
+    setCalories("");
+    setMessage("Calorie goal saved.");
+  }
+
+  const onDate = calorieGoalOn(goals, lookupDate);
+
+  return (
+    <section className="panel calorie-goals" aria-labelledby="calorie-goal-heading">
+      <h2 id="calorie-goal-heading">Calorie goals</h2>
+      <p className="muted section-description">Save the calorie goal for a date. Earlier goals stay on record, including the age on your profile when you saved them.</p>
+      <form onSubmit={handleSubmit} noValidate>
+        <label>
+          Date this goal applies
+          <input name="effectiveDate" type="date" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} aria-invalid={Boolean(errors.effectiveDate)} required />
+          {errors.effectiveDate ? <span className="error">{errors.effectiveDate}</span> : null}
+        </label>
+        <label>
+          Calorie goal
+          <input name="calories" type="number" min="1" max="10000" step="1" value={calories} onChange={(event) => setCalories(event.target.value)} aria-invalid={Boolean(errors.calories)} required />
+          {errors.calories ? <span className="error">{errors.calories}</span> : null}
+        </label>
+        {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
+        {message ? <p className="success" role="status">{message}</p> : null}
+        <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save calorie goal"}</button>
+      </form>
+      <label>
+        Goal on this date
+        <input type="date" value={lookupDate} onChange={(event) => setLookupDate(event.target.value)} />
+      </label>
+      <p className="muted">{onDate ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}.` : "No calorie goal was set on or before this date."}</p>
+      {loadError ? <p className="error" role="alert">{loadError}</p> : null}
+      {goals.length === 0 ? <p className="muted">No calorie goals yet.</p> : (
+        <ul className="goal-history">
+          {goals.map((goal) => (
+            <li key={goal.id}>
+              <time dateTime={goal.effectiveDate}>{formatDay(goal.effectiveDate)}</time>
+              <span>Age {goal.age}</span>
+              <strong>{goal.calories.toLocaleString()} cal</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
