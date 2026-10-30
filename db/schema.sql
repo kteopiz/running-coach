@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   height_inches REAL NOT NULL CHECK (height_inches >= 1),
   weight_lb REAL NOT NULL CHECK (weight_lb >= 1),
   weekly_mileage_goal REAL CHECK (weekly_mileage_goal > 0),
+  daily_calorie_goal INTEGER CHECK (daily_calorie_goal >= 1 AND daily_calorie_goal <= 10000),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
@@ -21,6 +22,20 @@ CREATE TABLE IF NOT EXISTS runs (
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS runs_user_date ON runs(user_id, run_date);
+
+CREATE TABLE IF NOT EXISTS meals (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  meal_date TEXT NOT NULL CHECK (date(meal_date) IS NOT NULL AND date(meal_date) = meal_date),
+  meal_time TEXT NOT NULL CHECK (length(meal_time) = 5 AND meal_time GLOB '[0-2][0-9]:[0-5][0-9]' AND meal_time <= '23:59'),
+  kind TEXT NOT NULL CHECK (kind IN ('breakfast', 'lunch', 'dinner', 'snack')),
+  description TEXT NOT NULL CHECK (length(trim(description)) > 0 AND length(description) <= 200),
+  calories INTEGER NOT NULL CHECK (calories >= 1 AND calories <= 10000),
+  weight_lb REAL NOT NULL CHECK (weight_lb >= 1),
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS meals_user_date ON meals(user_id, meal_date);
 
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,

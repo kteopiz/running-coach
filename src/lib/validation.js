@@ -38,7 +38,7 @@ export function validateMeasurements({ age, height, weight }) {
   return errors;
 }
 
-export function validateProfileFields({ age, height, weight, weeklyMileageGoal }) {
+export function validateProfileFields({ age, height, weight, weeklyMileageGoal, dailyCalorieGoal }) {
   const errors = validateMeasurements({ age, height, weight });
 
   if (weeklyMileageGoal === "" || weeklyMileageGoal === null || weeklyMileageGoal === undefined) {
@@ -47,6 +47,13 @@ export function validateProfileFields({ age, height, weight, weeklyMileageGoal }
     const goalNum = Number(weeklyMileageGoal);
     if (!Number.isFinite(goalNum) || goalNum <= 0) {
       errors.weeklyMileageGoal = "Weekly mileage goal must be a positive number.";
+    }
+  }
+
+  if (!(dailyCalorieGoal === "" || dailyCalorieGoal === null || dailyCalorieGoal === undefined)) {
+    const calorieGoal = Number(dailyCalorieGoal);
+    if (!Number.isInteger(calorieGoal) || calorieGoal < 1 || calorieGoal > 10000) {
+      errors.dailyCalorieGoal = "Daily calorie goal must be a whole number from 1 to 10000.";
     }
   }
 

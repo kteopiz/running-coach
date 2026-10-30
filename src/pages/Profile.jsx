@@ -11,6 +11,9 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       ? String(user.weeklyMileageGoal)
       : ""
   );
+  const [dailyCalorieGoal, setDailyCalorieGoal] = useState(
+    user.dailyCalorieGoal != null ? String(user.dailyCalorieGoal) : ""
+  );
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [pending, setPending] = useState(false);
@@ -25,6 +28,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       height,
       weight,
       weeklyMileageGoal,
+      dailyCalorieGoal,
     });
     setErrors(nextErrors);
 
@@ -38,6 +42,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       height: Number(height),
       weight: Number(weight),
       weeklyMileageGoal: Number(weeklyMileageGoal),
+      dailyCalorieGoal: dailyCalorieGoal === "" ? null : Number(dailyCalorieGoal),
     });
     setPending(false);
 
@@ -47,7 +52,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     }
 
     onUserChange(result.user);
-    setSuccess("Profile and weekly goal saved.");
+    setSuccess("Profile and goals saved.");
   }
 
   return (
@@ -56,7 +61,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       <div className="profile-grid">
       <section className="panel"><AccountSettings user={user} onUserChange={onUserChange} /></section>
       <section className="panel">
-      <h2>Measurements & weekly goal</h2><p className="muted section-description">Keep your profile current and set a distance to work toward.</p>
+      <h2>Measurements & goals</h2><p className="muted section-description">Keep your profile current, set a distance to work toward, and set a daily calorie goal.</p>
       <form onSubmit={handleSubmit} noValidate>
         <label>
           Age
@@ -114,6 +119,22 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           {errors.weeklyMileageGoal ? (
             <span className="error">{errors.weeklyMileageGoal}</span>
           ) : null}
+        </label>
+
+        <label className="weekly-goal-field">
+          Daily calorie goal (calories)
+          <input
+            name="dailyCalorieGoal"
+            type="number"
+            min="1"
+            max="10000"
+            step="1"
+            value={dailyCalorieGoal}
+            onChange={(event) => setDailyCalorieGoal(event.target.value)}
+            aria-invalid={Boolean(errors.dailyCalorieGoal)}
+          />
+          {errors.dailyCalorieGoal ? <span className="error">{errors.dailyCalorieGoal}</span> : null}
+          <span className="account-help">Optional. Meal logging uses this to calculate remaining calories. Leave it blank to clear it.</span>
         </label>
 
         {errors.form ? <p className="error">{errors.form}</p> : null}
