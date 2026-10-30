@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
+import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 
 import AppShell from "../components/AppShell";
 import RunHistory from "../components/RunHistory";
@@ -48,6 +49,7 @@ export default function Dashboard({ user, onNavigate }) {
 
   const progress = activity ? weeklyProgress(activity.weeklyMiles, user.weeklyMileageGoal) : null;
   const progressPercent = progress?.progress == null ? 0 : Math.round(progress.progress * 100);
+  const calorieEstimate = estimateDailyCalories(user);
 
   return (
     <AppShell user={user} page="dashboard" onNavigate={onNavigate}>
@@ -74,6 +76,14 @@ export default function Dashboard({ user, onNavigate }) {
             <div className="progress-caption"><span>{progress.status === "over-goal" ? `${formatMiles(progress.overMiles)} miles beyond your goal. Nice work.` : progress.status === "complete" ? "Weekly goal reached. Nice work." : "Every run counts. Keep it going."}</span><strong>{progressPercent}% complete</strong></div>
           </> : <p className="muted">Set a weekly goal to track your progress.</p>}
         </> : null}
+      </section>
+      <section className="panel calorie-panel" aria-labelledby="calorie-heading">
+        <h2 id="calorie-heading">Daily calorie estimate</h2>
+        {calorieEstimate ? <>
+          <p className="metric-label">{calorieEstimate.label}</p>
+          <p className="metric-value">{calorieEstimate.calories.toLocaleString()}<span> cal</span></p>
+          <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
+        </> : <p className="muted">Set a weekly mileage goal to calculate an educational daily calorie estimate.</p>}
       </section>
       <div className="dashboard-grid">
         <RunHistory runs={activity?.runs || []} loading={loadingActivity}

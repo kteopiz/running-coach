@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run five essential tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, and weekly progress using temporary databases.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, the calorie estimate, and calorie-goal history.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -131,6 +131,21 @@ Browser review checklist (use sample accounts or a disposable local database):
 Implementation verification: all five automated tests and the production build
 passed. Browser interaction checks remain pending because no browser was
 available to the automation environment. No failing automated checks remain.
+
+### calorie_goals
+
+Each row is one calorie goal for one runner on one date. Saving the same date again updates that row. The goal in effect on a later day is the latest row dated on or before that day. `age` is the profile age at the time the goal was saved.
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| id | INTEGER, primary key | Goal entry identifier |
+| user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their goals |
+| effective_date | TEXT, required | Calendar date in YYYY-MM-DD format; unique per runner |
+| calories | INTEGER, required | Whole-number daily calorie goal from 1 to 10000 |
+| age | INTEGER, required | Profile age saved with this goal |
+| created_at | TEXT, required | UTC creation timestamp, filled automatically |
+
+`GET /api/calorie-goals` lists the signed-in runner's goals, newest date first. `POST /api/calorie-goals` with `{ effectiveDate, calories }` adds or updates that date. The daily calorie number on the overview is a separate educational estimate. It is calculated from age, height, weight, and the weekly mileage goal. It is not stored as a calorie goal.
 
 ### sessions
 

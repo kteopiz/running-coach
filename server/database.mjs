@@ -16,7 +16,7 @@ export function openDatabase(path = databasePath) {
 export function initializeDatabase(db, { reset = false } = {}) {
   db.exec("BEGIN IMMEDIATE");
   try {
-    if (reset) db.exec("DROP TABLE IF EXISTS sessions; DROP TABLE IF EXISTS runs; DROP TABLE IF EXISTS users;");
+    if (reset) db.exec("DROP TABLE IF EXISTS sessions; DROP TABLE IF EXISTS runs; DROP TABLE IF EXISTS calorie_goals; DROP TABLE IF EXISTS users;");
     const existing = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'").get();
     db.exec(readFileSync(resolve(root, "db/schema.sql"), "utf8"));
     // Seed once, even if a teammate later edits or removes the sample accounts.
