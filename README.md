@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run five essential tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, and weekly progress using temporary databases.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, and meal fields.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -131,6 +131,22 @@ Browser review checklist (use sample accounts or a disposable local database):
 Implementation verification: all five automated tests and the production build
 passed. Browser interaction checks remain pending because no browser was
 available to the automation environment. No failing automated checks remain.
+
+### meals
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| id | INTEGER, primary key | Meal identifier |
+| user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their meals |
+| meal_date | TEXT, required | Selected calendar date in YYYY-MM-DD format |
+| meal_time | TEXT, required | Time of day as HH:MM, from 00:00 through 23:59 |
+| kind | TEXT, required | breakfast, lunch, dinner, or snack |
+| description | TEXT, required | What was eaten, 1 to 200 characters |
+| calories | INTEGER, required | Whole-number calories from 1 to 10000 |
+| weight_lb | REAL, required | Profile weight in pounds copied when the meal is logged |
+| created_at | TEXT, required | UTC creation timestamp, filled automatically |
+
+The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date.
 
 ### sessions
 
