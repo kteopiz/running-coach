@@ -19,6 +19,12 @@ export function initializeDatabase(db, { reset = false } = {}) {
     if (reset) db.exec("DROP TABLE IF EXISTS sessions; DROP TABLE IF EXISTS runs; DROP TABLE IF EXISTS users;");
     const existing = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'").get();
     db.exec(readFileSync(resolve(root, "db/schema.sql"), "utf8"));
+    const runColumns = db.prepare("PRAGMA table_info(runs)").all().map((column) => column.name);
+    if (runColumns.length && !runColumns.includes("start_time")) {
+      db.exec(`ALTER TABLE runs ADD COLUMN start_time TEXT CHECK (
+        start_time IS NULL OR (length(start_time) = 5 AND start_time GLOB '[0-2][0-9]:[0-5][0-9]' AND start_time <= '23:59')
+      )`);
+    }
     // Seed once, even if a teammate later edits or removes the sample accounts.
     if (!existing) db.exec(readFileSync(resolve(root, "db/seed.sql"), "utf8"));
     db.exec("COMMIT");
