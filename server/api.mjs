@@ -4,10 +4,12 @@ import { hashPassword, verifyPassword } from "./passwords.mjs";
 import { validateAccountFields, validateMeasurements, validateProfileFields } from "../src/lib/validation.js";
 
 import { localDate, validateRunFields } from "../src/lib/runValidation.js";
+import { validateMealFields } from "../src/lib/meals.js";
 
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const publicColumns = `id, name, email, age, height_inches AS height,
   weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal`;
+const mealColumns = `id, meal_date AS date, meal_time AS time, kind, description, calories, weight_lb AS weightLb`;
 const now = () => Math.floor(Date.now() / 1000);
 const emailKey = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
 
@@ -106,7 +108,7 @@ export function createApi(db) {
       }
       const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
       const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
-      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs"].includes(route) && !runMutation) fail("Endpoint not found.", 404);
+      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
       if (!user) fail("You must be signed in.", 401);
       if (route === "PATCH /api/profile") {
@@ -155,6 +157,19 @@ export function createApi(db) {
         }
         const run = db.prepare("SELECT id, run_date AS date, distance_miles AS distanceMiles, duration_minutes AS durationMinutes, notes FROM runs WHERE id = ? AND user_id = ?").get(savedId, user.id);
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, run });
+      }
+      if (route === "GET /api/meals" || route === "POST /api/meals") {
+        if (req.method === "GET") {
+          const meals = db.prepare(`SELECT ${mealColumns} FROM meals WHERE user_id = ? ORDER BY meal_date DESC, meal_time ASC, id ASC`).all(user.id);
+          return respond(res, 200, { ok: true, meals });
+        }
+        const body = await readBody(req);
+        const errors = validateMealFields(body);
+        if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
+        const result = db.prepare(`INSERT INTO meals (user_id, meal_date, meal_time, kind, description, calories, weight_lb)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`).run(user.id, body.date, body.time, body.kind, body.description.trim(), Number(body.calories), user.weight);
+        const meal = db.prepare(`SELECT ${mealColumns} FROM meals WHERE id = ? AND user_id = ?`).get(Number(result.lastInsertRowid), user.id);
+        return respond(res, 201, { ok: true, meal });
       }
       const today = new Date();
       const monday = new Date(today);

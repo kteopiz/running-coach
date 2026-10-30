@@ -86,8 +86,13 @@ p { font-size: 14px; line-height: 1.6; }
 .progress-caption { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 12px; }
 .progress-caption strong { color: var(--text); white-space: nowrap; font-weight: 600; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr); gap: 22px; margin-top: 22px; align-items: start; }
+.meal-panel { margin-top: 22px; }
+.meal-date { width: 11.5rem; flex: none; }
+.meal-date input { min-height: 36px; }
+.meal-description { overflow-wrap: anywhere; }
 .run-list { list-style: none; margin: 0; padding: 0; }
 .run-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) minmax(65px, .7fr) minmax(65px, .7fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--border); padding: 18px 0; }
+.meal-row { grid-template-columns: minmax(160px, 1.8fr) repeat(3, minmax(64px, .7fr)) auto; }
 .run-row:last-child { padding-bottom: 0; }
 .run-date { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; }
 .run-date > div, .run-stat { display: flex; flex-direction: column; gap: 4px; }
@@ -111,13 +116,16 @@ p { font-size: 14px; line-height: 1.6; }
 .panel-note { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 8px; color: var(--muted); font-size: 12px; }
 form { display: grid; gap: 17px; }
 label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 600; min-width: 0; }
-input { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--input-border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--surface); font-size: 14px; }
-input[aria-invalid="true"] { border-color: var(--danger); }
+input, select { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--input-border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--surface); font-size: 14px; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--danger); }
 .error { color: var(--danger); font-size: 12px; }
 .success, .history-panel > [role="status"] { color: var(--success); font-size: 13px; }
 .history-panel > p { margin-bottom: 12px; }
-.run-form { grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; padding: 18px; margin-bottom: 18px; gap: 14px; }
-.run-form h3, .run-form > .error, .form-actions { grid-column: 1 / -1; }
+.run-form, .meal-form { background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; padding: 18px; margin-bottom: 18px; gap: 14px; }
+.run-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.meal-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.run-form h3, .run-form > .error, .meal-form h3, .meal-form > .error, .meal-form .wide, .form-actions, .weight-note { grid-column: 1 / -1; }
+.weight-note { margin: 0; color: var(--muted); font-size: 13px; font-weight: 400; }
 .form-actions { display: flex; gap: 8px; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
 .section-description { margin: 7px 0 24px; }
@@ -133,7 +141,7 @@ main:not(.page) h1 { font-size: 36px; }
   .header-inner { gap: 20px; }
   .header-account > span { display: none; }
   .dashboard-grid { grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr); }
-  .run-row { grid-template-columns: 1.5fr 1fr 1fr; }
+  .run-row, .meal-row { grid-template-columns: 1.5fr 1fr 1fr; }
   .row-actions { grid-column: 1 / -1; justify-content: flex-end; }
 }
 @media (max-width: 760px) {
@@ -151,7 +159,10 @@ main:not(.page) h1 { font-size: 36px; }
   .metric-value span { font-size: 13px; }
   .metric-label { font-size: 12px; }
   .progress-caption { font-size: 11px; }
-  .run-form { grid-template-columns: 1fr; }
+  .run-form, .meal-form { grid-template-columns: 1fr; }
+  .meal-panel .section-heading { flex-wrap: wrap; align-items: flex-end; }
+  .meal-date { width: auto; flex: 1 1 9rem; min-width: 0; }
+  .meal-panel .metric-value { font-size: 26px; letter-spacing: -0.6px; }
   .section-heading { gap: 12px; }
   .section-heading > .primary-button { white-space: nowrap; }
   .row-actions button { min-height: 44px; padding: 10px 14px; }

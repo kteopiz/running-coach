@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, and meal fields.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, and meal logging.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -146,7 +146,7 @@ available to the automation environment. No failing automated checks remain.
 | weight_lb | REAL, required | Profile weight in pounds copied when the meal is logged |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date.
+The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date. `POST /api/meals` saves `{ date, time, kind, description, calories }` for the signed-in runner and copies the profile weight. `GET /api/meals` returns only that runner's meals.
 
 ### sessions
 
