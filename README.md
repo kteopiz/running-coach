@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, and meal logging.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, meal logging, and daily calorie progress using temporary databases.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -146,7 +146,22 @@ available to the automation environment. No failing automated checks remain.
 | weight_lb | REAL, required | Profile weight in pounds copied when the meal is logged |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-The selected date must be a real calendar date and cannot be in the future. Meals are indexed by owner and date. `POST /api/meals` saves `{ date, time, kind, description, calories }` for the signed-in runner and copies the profile weight. `GET /api/meals` returns only that runner's meals. `PATCH /api/meals/:id` updates an owned meal and keeps the recorded weight. `DELETE /api/meals/:id` removes it. Another runner's meal returns 404.
+Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
+
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. This is one current goal, not a history of goals by date.
+
+### Meal API
+
+All meal endpoints require the session cookie. The server chooses the owner and the stored weight from the session.
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /api/meals` | All meals owned by the signed-in user |
+| `POST /api/meals` | Create with `{ date, time, kind, description, calories }`; returns 201 and `meal` |
+| `PATCH /api/meals/:id` | Update those fields for an owned meal; weight stays as first logged |
+| `DELETE /api/meals/:id` | Delete the owned meal; returns 200 |
+
+Validation returns 400 with field `errors`. Signed-out requests return 401. Missing meals and another user's meals return 404. Dates must be real and cannot be in the future. Consumed calories are the sum for the selected date. Remaining is the daily goal minus consumed, and it does not drop below zero. Going over the goal shows the extra calories separately. With no daily goal, remaining is unset.
 
 ### sessions
 

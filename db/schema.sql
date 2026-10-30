@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   height_inches REAL NOT NULL CHECK (height_inches >= 1),
   weight_lb REAL NOT NULL CHECK (weight_lb >= 1),
   weekly_mileage_goal REAL CHECK (weekly_mileage_goal > 0),
+  daily_calorie_goal INTEGER CHECK (daily_calorie_goal >= 1 AND daily_calorie_goal <= 10000),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 

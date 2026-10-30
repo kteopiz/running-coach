@@ -30,3 +30,22 @@ export function validateMealFields(fields, today = localDate()) {
   }
   return errors;
 }
+
+export function calorieProgress(meals, goalCalories, date) {
+  const consumedCalories = meals
+    .filter((meal) => meal.date === date)
+    .reduce((sum, meal) => sum + Number(meal.calories), 0);
+  const goal = Number(goalCalories);
+  const hasGoal = Number.isInteger(goal) && goal >= 1 && goal <= 10000;
+  if (!hasGoal) {
+    return { consumedCalories, goalCalories: null, remainingCalories: null, overCalories: 0, status: "no-goal" };
+  }
+  const overCalories = Math.max(0, consumedCalories - goal);
+  return {
+    consumedCalories,
+    goalCalories: goal,
+    remainingCalories: Math.max(0, goal - consumedCalories),
+    overCalories,
+    status: overCalories > 0 ? "over-goal" : consumedCalories === goal ? "complete" : "in-progress",
+  };
+}

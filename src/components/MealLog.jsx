@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { createMeal, deleteMeal, getMeals, updateMeal } from "../lib/userStore";
 import { localDate } from "../lib/runValidation";
-import { MEAL_KINDS, validateMealFields } from "../lib/meals";
+import { MEAL_KINDS, calorieProgress, validateMealFields } from "../lib/meals";
+
+function formatDate(date) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 function formatTime(value) {
   const [hourText, minute] = value.split(":");
@@ -13,7 +17,7 @@ function kindLabel(kind) {
   return MEAL_KINDS.find(([value]) => value === kind)?.[1] || kind;
 }
 
-export default function MealLog({ user }) {
+export default function MealLog({ user, onNavigate }) {
   const [selectedDate, setSelectedDate] = useState(localDate());
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +30,8 @@ export default function MealLog({ user }) {
   const today = localDate();
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) && selectedDate <= today;
   const dayMeals = meals.filter((meal) => meal.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time) || a.id - b.id);
+  const progress = dateReady ? calorieProgress(meals, user.dailyCalorieGoal, selectedDate) : null;
+  const progressPercent = progress?.goalCalories ? Math.min(100, Math.round((progress.consumedCalories / progress.goalCalories) * 100)) : 0;
 
   useEffect(() => {
     let active = true;
@@ -88,6 +94,27 @@ export default function MealLog({ user }) {
         }}>+ Log a meal</button>
       </div>
       {!dateReady ? <p className="error" role="alert">Enter a valid meal date. Future dates are not allowed.</p> : null}
+      {progress ? (
+        <>
+          <div className="metrics">
+            <div><p className="metric-label">Consumed</p><p className="metric-value">{loading ? "—" : progress.consumedCalories.toLocaleString()}<span> cal</span></p></div>
+            <div><p className="metric-label">Calorie goal</p><p className="metric-value">{progress.goalCalories == null ? "—" : progress.goalCalories.toLocaleString()}<span> cal</span></p></div>
+            <div><p className="metric-label">Remaining</p><p className="metric-value">{loading || progress.remainingCalories == null ? "—" : progress.remainingCalories.toLocaleString()}<span> cal</span></p></div>
+          </div>
+          {progress.status === "no-goal" ? <p className="muted">Set a daily calorie goal to see what's left. <button className="text-button" type="button" onClick={() => onNavigate("profile")}>Set calorie goal</button></p> : null}
+          {progress.goalCalories != null && !loading ? (
+            <>
+              <div className="progress-track" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Daily calorie progress">
+                <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <div className="progress-caption">
+                <span>{progress.status === "over-goal" ? `${progress.overCalories.toLocaleString()} cal over your goal.` : progress.status === "complete" ? "Daily calorie goal reached." : `Calories logged for ${formatDate(selectedDate)}.`}</span>
+                <strong>{progressPercent}% of goal</strong>
+              </div>
+            </>
+          ) : null}
+        </>
+      ) : null}
       {editing ? <MealForm key={editing.id || "new"} meal={editing} user={user} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}
@@ -124,6 +151,7 @@ function MealForm({ meal, user, onSaved, onCancel }) {
   });
   const [errors, setErrors] = useState({});
   const [pending, setPending] = useState(false);
+  const weight = meal.id ? meal.weightLb : user.weight;
 
   function update(name, value) {
     setFields((current) => ({ ...current, [name]: value }));
@@ -173,7 +201,7 @@ function MealForm({ meal, user, onSaved, onCancel }) {
         <input name="description" type="text" required disabled={pending} maxLength="200" value={fields.description} onChange={(event) => update("description", event.target.value)} aria-invalid={Boolean(errors.description)} aria-describedby={errors.description ? "meal-description-error" : undefined} />
         {errors.description ? <span className="error" id="meal-description-error">{errors.description}</span> : null}
       </label>
-      <p className="weight-note">{meal.id ? `Profile weight recorded with this meal: ${meal.weightLb} lb. Editing does not change it.` : `Profile weight saved with this meal: ${user.weight} lb. This comes from your profile.`}</p>
+      <p className="weight-note">{meal.id ? `Profile weight recorded with this meal: ${weight} lb. Editing does not change it.` : `Profile weight saved with this meal: ${weight} lb. This comes from your profile.`}</p>
       {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
       <div className="form-actions">
         <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save meal"}</button>

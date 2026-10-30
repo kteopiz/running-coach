@@ -8,7 +8,7 @@ import { validateMealFields } from "../src/lib/meals.js";
 
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const publicColumns = `id, name, email, age, height_inches AS height,
-  weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal`;
+  weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal, daily_calorie_goal AS dailyCalorieGoal`;
 const mealColumns = `id, meal_date AS date, meal_time AS time, kind, description, calories, weight_lb AS weightLb`;
 const now = () => Math.floor(Date.now() / 1000);
 const emailKey = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -117,8 +117,9 @@ export function createApi(db) {
         const body = await readBody(req);
         const errors = validateProfileFields(body);
         if (Object.keys(errors).length) fail(Object.values(errors)[0]);
-        db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ? WHERE id = ?")
-          .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), user.id);
+        const dailyCalorieGoal = body.dailyCalorieGoal == null || body.dailyCalorieGoal === "" ? null : Number(body.dailyCalorieGoal);
+        db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ? WHERE id = ?")
+          .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, user.id);
         return respond(res, 200, { ok: true, user: publicUser(user.id) });
       }
       if (route === "PATCH /api/account") {

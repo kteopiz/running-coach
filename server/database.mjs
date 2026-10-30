@@ -19,6 +19,10 @@ export function initializeDatabase(db, { reset = false } = {}) {
     if (reset) db.exec("DROP TABLE IF EXISTS sessions; DROP TABLE IF EXISTS meals; DROP TABLE IF EXISTS runs; DROP TABLE IF EXISTS users;");
     const existing = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'").get();
     db.exec(readFileSync(resolve(root, "db/schema.sql"), "utf8"));
+    const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
+    if (!userColumns.includes("daily_calorie_goal")) {
+      db.exec("ALTER TABLE users ADD COLUMN daily_calorie_goal INTEGER");
+    }
     // Seed once, even if a teammate later edits or removes the sample accounts.
     if (!existing) db.exec(readFileSync(resolve(root, "db/seed.sql"), "utf8"));
     db.exec("COMMIT");
