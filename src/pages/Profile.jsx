@@ -1,5 +1,6 @@
 import AppShell from "../components/AppShell";
 import { useState } from "react";
+import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { MEASUREMENT_MIN, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
@@ -14,6 +15,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [pending, setPending] = useState(false);
+  const calorieEstimate = estimateDailyCalories({ age, height, weight, weeklyMileageGoal });
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -115,6 +117,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <span className="error">{errors.weeklyMileageGoal}</span>
           ) : null}
         </label>
+        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {calorieEstimate.calories.toLocaleString()} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">Enter a weekly mileage goal to see the educational calorie estimate.</p>}
 
         {errors.form ? <p className="error">{errors.form}</p> : null}
         {success ? <p className="success">{success}</p> : null}
