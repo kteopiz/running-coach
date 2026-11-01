@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
+import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
 import RunHistory from "../components/RunHistory";
@@ -47,6 +48,11 @@ export default function Dashboard({ user, onNavigate }) {
   }, [user.weeklyMileageGoal, revision]);
 
   const progress = activity ? weeklyProgress(activity.weeklyMiles, user.weeklyMileageGoal) : null;
+  const recommendation = activity ? recommendToday({
+    completedMiles: activity.weeklyMiles,
+    goalMiles: user.weeklyMileageGoal,
+    runDates: activity.runs.map((run) => run.date),
+  }) : null;
   const progressPercent = progress?.progress == null ? 0 : Math.round(progress.progress * 100);
 
   return (
@@ -73,6 +79,11 @@ export default function Dashboard({ user, onNavigate }) {
             </div>
             <div className="progress-caption"><span>{progress.status === "over-goal" ? `${formatMiles(progress.overMiles)} miles beyond your goal. Nice work.` : progress.status === "complete" ? "Weekly goal reached. Nice work." : "Every run counts. Keep it going."}</span><strong>{progressPercent}% complete</strong></div>
           </> : <p className="muted">Set a weekly goal to track your progress.</p>}
+          {recommendation ? <div className="recommendation" aria-live="polite">
+            <p className="metric-label" id="today-heading">Today</p>
+            <p className="metric-value">{recommendation.todayMiles == null ? "—" : formatMiles(recommendation.todayMiles)}<span> mi</span></p>
+            <p className="muted">{recommendation.message}</p>
+          </div> : null}
         </> : null}
       </section>
       <div className="dashboard-grid">
