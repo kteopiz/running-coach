@@ -85,6 +85,10 @@ p { font-size: 14px; line-height: 1.6; }
 .progress-fill { height: 100%; background: var(--accent); border-radius: inherit; }
 .progress-caption { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 12px; }
 .progress-caption strong { color: var(--text); white-space: nowrap; font-weight: 600; }
+.recommendation { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.recommendation-miles { margin-top: 4px; font-size: 28px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.recommendation-miles span { color: var(--muted); font-size: 14px; font-weight: 400; letter-spacing: 0; }
+.recommendation .muted { margin-top: 6px; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr); gap: 22px; margin-top: 22px; align-items: start; }
 .run-list { list-style: none; margin: 0; padding: 0; }
 .run-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) minmax(65px, .7fr) minmax(65px, .7fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--border); padding: 18px 0; }
