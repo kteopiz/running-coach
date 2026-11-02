@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { createApi } from "../server/api.mjs";
+import { recommendToday } from "../src/lib/recommendation.js";
 import { weeklyProgress } from "../src/lib/weeklyProgress.js";
 import { sortRuns } from "../src/lib/runSort.js";
 import { localDate } from "../src/lib/runValidation.js";
@@ -221,4 +222,38 @@ test("history can be sorted by date, distance, and duration in either direction"
   assert.deepEqual(sortRuns(runs, "distance-asc").map((run) => run.id), [3, 1, 2]);
   assert.deepEqual(sortRuns(runs, "duration-desc").map((run) => run.id), [2, 1, 3]);
   assert.deepEqual(sortRuns(runs, "duration-asc").map((run) => run.id), [1, 2, 3]);
+});
+
+
+test("weekly API precision keeps progress and coaching incomplete until the exact goal is met", async () => {
+  await withApi(async ({ request }) => {
+    await request("/login", "POST", { email: "sam@example.com", password: "demo123" });
+    const run = { date: localDate(), startTime: "08:00", distanceMiles: 14.96, durationMinutes: 120 };
+    const created = await request("/runs", "POST", run);
+    assert.equal(created.status, 201);
+    const activity = await request("/runs");
+    assert.equal(activity.weeklyMiles, 14.96);
+    const progress = weeklyProgress(activity.weeklyMiles, 15);
+    const coach = recommendToday({ completedMiles: activity.weeklyMiles, goalMiles: 15, today: run.date });
+    assert.equal(progress.status, "in-progress");
+    assert.ok(progress.progress < 1);
+    assert.ok(progress.remainingMiles > 0);
+    assert.equal(progress.remainingMiles, coach.remainingMiles);
+    assert.doesNotMatch(coach.message, /goal is complete/);
+    assert.equal((await request(`/runs/${created.run.id}`, "PATCH", { ...run, distanceMiles: 15 })).status, 200);
+    const complete = await request("/runs");
+    assert.equal(weeklyProgress(complete.weeklyMiles, 15).status, "complete");
+    assert.equal(recommendToday({ completedMiles: complete.weeklyMiles, goalMiles: 15, today: run.date }).remainingMiles, 0);
+    assert.equal((await request(`/runs/${created.run.id}`, "DELETE")).status, 200);
+    assert.equal((await request("/runs")).weeklyMiles, 0);
+  });
+});
+
+test("small goals and fractional completion keep weekly progress finite and accurate", () => {
+  const small = weeklyProgress(0, 0.01);
+  assert.equal(small.status, "in-progress");
+  assert.equal(small.progress, 0);
+  assert.equal(small.remainingMiles, 0.01);
+  assert.equal(weeklyProgress(0.01, 0.01).status, "complete");
+  assert.equal(weeklyProgress(15.01, 15).status, "over-goal");
 });
