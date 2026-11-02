@@ -106,6 +106,23 @@ notes are preserved when editing. History is unpaginated for this sprint.
 Weekly remaining mileage is clamped to zero; exceeding the goal shows the extra
 distance, while the progress bar stops at 100%.
 
+## Today's recommendation
+
+The dashboard suggests one distance for today from the signed-in runner's weekly
+goal and the miles already completed this week (Monday through today). The rules
+live in `src/lib/recommendation.js` and do not use age, height, or weight.
+
+- With no weekly goal, no distance is suggested.
+- Remaining miles are the goal minus completed miles, and never drop below zero.
+  Meeting or passing the goal recommends 0 miles and a rest day.
+- Otherwise the suggestion splits the remaining miles across the days left in the
+  week, including today. Monday has 7 days left and Sunday has 1.
+- The suggestion cannot exceed 6 miles or 25% of the weekly goal.
+- A run already logged today cuts the suggestion in half.
+- Three different run days this week recommend rest, even if miles remain.
+- Logging, editing, or deleting a run reloads the week, so today's distance follows
+  the new totals.
+
 ## Sprint 2 acceptance checks
 
 Automated: `npm test` and `npm run build`. The focused run API test covers real
