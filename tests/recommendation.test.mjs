@@ -13,7 +13,7 @@ test("recommendation inputs stay inside the stated bounds", () => {
   const cap = dailyCap(14);
   assert.equal(cap, 3.5);
   assert.ok(cap <= RECOMMENDATION_RULES.maxDailyMiles);
-  assert.ok(cap <= 14 * RECOMMENDATION_RULES.maxGoalShare + 0.05);
+  assert.ok(cap <= 14 * RECOMMENDATION_RULES.maxGoalShare);
   assert.equal(dailyCap(100), RECOMMENDATION_RULES.maxDailyMiles);
   assert.equal(dailyCap(0), 0);
   assert.equal(dailyCap(null), 0);
@@ -26,7 +26,7 @@ test("today's distance stays bounded for no runs, a partial goal, and a complete
   const goal = 14;
   const cap = dailyCap(goal);
   assert.ok(cap <= RECOMMENDATION_RULES.maxDailyMiles);
-  assert.ok(cap <= goal * RECOMMENDATION_RULES.maxGoalShare + 0.05);
+  assert.ok(cap <= goal * RECOMMENDATION_RULES.maxGoalShare);
 
   const noRuns = recommendToday({ completedMiles: 0, goalMiles: goal, daysLeft: 7, today: monday });
   assert.equal(noRuns.status, "suggested");
@@ -123,4 +123,46 @@ test("remaining mileage has a zero floor", () => {
   assert.equal(remainingMiles(3, null), null);
   assert.equal(recommendToday({ completedMiles: 40, goalMiles: 10, daysLeft: 3, today: monday }).todayMiles, 0);
   assert.equal(recommendToday({ completedMiles: -3, goalMiles: 10, daysLeft: 7, today: monday }).remainingMiles, 10);
+});
+
+
+test("fractional goals and remainders never round a recommendation above a hard bound", () => {
+  assert.equal(dailyCap(15), 3.75);
+  assert.equal(recommendToday({ goalMiles: 15, daysLeft: 1, today: monday }).todayMiles, 3.7);
+  for (const goalMiles of [0.01, 0.3, 1.5, 14, 15, 24.1, 40]) {
+    for (const fraction of [0, 0.25, 0.5, 0.99, 1, 1.1]) {
+      const completedMiles = goalMiles * fraction;
+      for (const daysLeft of [1, 4, 7]) {
+        for (const runDates of [[], [monday]]) {
+          const result = recommendToday({ goalMiles, completedMiles, daysLeft, runDates, today: monday });
+          assert.ok(Number.isFinite(result.todayMiles));
+          assert.ok(result.todayMiles >= 0);
+          assert.ok(result.todayMiles <= 6);
+          assert.ok(result.todayMiles <= goalMiles * 0.25);
+          assert.ok(result.todayMiles <= Math.max(0, goalMiles - completedMiles));
+          if (result.todayMiles === 0) assert.equal(result.status, "rest");
+        }
+      }
+    }
+  }
+});
+
+test("a tiny positive remainder recommends rest without declaring the goal complete", () => {
+  const result = recommendToday({ goalMiles: 15, completedMiles: 14.96, daysLeft: 1, today: monday });
+  assert.ok(Math.abs(result.remainingMiles - 0.04) < 1e-12);
+  assert.equal(result.todayMiles, 0);
+  assert.equal(result.status, "rest");
+  assert.match(result.message, /not yet complete/);
+  assert.match(recommendToday({ goalMiles: 15, completedMiles: 15, today: monday }).message, /goal is complete/);
+});
+
+test("recovery counts distinct current-week days, including nonconsecutive days", () => {
+  const inputs = { goalMiles: 20, completedMiles: 6, today: "2026-10-25" };
+  const baseline = recommendToday({ ...inputs, runDates: ["2026-10-19"] });
+  assert.deepEqual(recommendToday({ ...inputs, runDates: ["2026-10-19", "2026-10-19", "2026-10-18", "2026-10-26"] }), baseline);
+  const rest = recommendToday({ ...inputs, runDates: ["2026-10-19", "2026-10-21", "2026-10-23"] });
+  assert.equal(rest.status, "rest");
+  assert.equal(rest.todayMiles, 0);
+  assert.equal(rest.remainingMiles, 14);
+  assert.deepEqual(recommendToday(inputs), recommendToday(inputs));
 });
