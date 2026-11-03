@@ -37,7 +37,7 @@ export function clampDaysLeft(daysLeft, today = new Date()) {
 export function dailyCap(goalMiles) {
   const goal = Number(goalMiles);
   if (!Number.isFinite(goal) || goal <= 0) return 0;
-  return roundTenth(Math.min(RECOMMENDATION_RULES.maxDailyMiles, goal * RECOMMENDATION_RULES.maxGoalShare));
+  return Math.min(RECOMMENDATION_RULES.maxDailyMiles, goal * RECOMMENDATION_RULES.maxGoalShare);
 }
 
 // Remaining weekly miles. A missing goal has no remaining value.
@@ -46,7 +46,7 @@ export function remainingMiles(completedMiles, goalMiles) {
   const goal = Number(goalMiles);
   if (!Number.isFinite(goal) || goal <= 0) return null;
   const completed = Number.isFinite(Number(completedMiles)) ? Math.max(0, Number(completedMiles)) : 0;
-  return roundTenth(Math.max(0, goal - completed));
+  return Math.max(0, goal - completed);
 }
 
 function datesThisWeek(runDates, today) {
@@ -81,7 +81,9 @@ export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, runDat
 
   const cap = dailyCap(goalMiles);
   const evenShare = remaining / days;
-  let todayMiles = roundTenth(Math.min(evenShare, cap, remaining));
+  // Round normally for readability, but round down if rounding would cross a bound.
+  const bound = Math.min(cap, remaining);
+  let todayMiles = Math.min(roundTenth(Math.min(evenShare, bound)), Math.floor(bound * 10) / 10);
   let status = todayMiles < roundTenth(evenShare) ? "reduced" : "suggested";
 
   if (ranToday) {
@@ -89,8 +91,11 @@ export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, runDat
     status = todayMiles === 0 ? "rest" : "reduced";
   }
 
-  if (status === "rest") {
-    return { ...base, todayMiles: 0, status, message: "You already ran today. Rest instead of adding more miles." };
+  if (todayMiles === 0) {
+    status = "rest";
+    return { ...base, todayMiles: 0, status, message: ranToday
+      ? "You already ran today. Rest instead of adding more miles."
+      : "Today’s bounded distance is less than 0.1 miles. Rest today; your weekly goal is not yet complete." };
   }
   if (status === "reduced") {
     const reason = ranToday ? "You already ran today." : "That is less than an even split, so today stays manageable.";

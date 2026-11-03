@@ -166,7 +166,7 @@ export function createApi(db) {
       const runs = db.prepare(`${RUN_COLUMNS} WHERE user_id = ? ORDER BY run_date DESC, start_time DESC, id DESC`).all(user.id);
       const { total } = db.prepare("SELECT COALESCE(SUM(distance_miles), 0) AS total FROM runs WHERE user_id = ? AND run_date >= ? AND run_date <= ?")
         .get(user.id, localDate(monday), localDate(today));
-      return respond(res, 200, { ok: true, runs, weeklyMiles: Math.round(total * 10) / 10 });
+      return respond(res, 200, { ok: true, runs, weeklyMiles: total });
     } catch (error) {
       if (!error.status) console.error(error);
       respond(res, error.status || 500, { ok: false, error: error.status ? error.message : "The local server could not complete the request." });

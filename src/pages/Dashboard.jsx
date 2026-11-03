@@ -7,6 +7,7 @@ import AppShell from "../components/AppShell";
 import RunHistory from "../components/RunHistory";
 
 function formatMiles(value) {
+  if (Number(value) > 0 && Number(value) < 0.1) return "<0.1";
   const rounded = Math.round(Number(value) * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
@@ -56,7 +57,7 @@ export default function Dashboard({ user, onNavigate }) {
     goalMiles: user.weeklyMileageGoal,
     runDates: activity.runs.map((run) => run.date),
   }) : null;
-  const progressPercent = progress?.progress == null ? 0 : Math.round(progress.progress * 100);
+  const progressPercent = progress?.progress == null ? 0 : Math.min(progress.status === "in-progress" ? 99 : 100, Math.round(progress.progress * 100));
 
   return (
     <AppShell user={user} page="dashboard" onNavigate={onNavigate}>
