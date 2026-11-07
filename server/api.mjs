@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from "./passwords.mjs";
 import { validateAccountFields, validateMeasurements, validateProfileFields } from "../src/lib/validation.js";
 
 import { localDate, validateRunFields } from "../src/lib/runValidation.js";
+import { validateCalorieGoal } from "../src/lib/calories.js";
 import { validateMealFields } from "../src/lib/meals.js";
 
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
@@ -111,8 +112,9 @@ export function createApi(db) {
       const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
       const mealMatch = path.match(/^\/api\/meals\/([1-9]\d*)$/);
       const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
+      const calorieRoute = route === "GET /api/calorie-goals" || route === "POST /api/calorie-goals";
       const mealMutation = mealMatch && ["PATCH", "DELETE"].includes(req.method);
-      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation && !mealMutation) fail("Endpoint not found.", 404);
+      if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation && !mealMutation && !calorieRoute) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
       if (!user) fail("You must be signed in.", 401);
       if (route === "PATCH /api/profile") {
@@ -138,6 +140,18 @@ export function createApi(db) {
           db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, user.id);
         }
         return respond(res, 200, { ok: true, user: publicUser(user.id) });
+      }
+      if (calorieRoute) {
+        const listGoals = () => db.prepare(`SELECT id, effective_date AS effectiveDate, calories, age
+          FROM calorie_goals WHERE user_id = ? ORDER BY effective_date DESC, id DESC`).all(user.id);
+        if (req.method === "GET") return respond(res, 200, { ok: true, goals: listGoals() });
+        const body = await readBody(req);
+        const errors = validateCalorieGoal(body);
+        if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
+        db.prepare(`INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (?, ?, ?, ?)
+          ON CONFLICT(user_id, effective_date) DO UPDATE SET calories = excluded.calories, age = excluded.age`)
+          .run(user.id, body.effectiveDate, Number(body.calories), user.age);
+        return respond(res, 200, { ok: true, goals: listGoals() });
       }
       if (route === "POST /api/runs" || runMutation) {
         const id = runMatch ? Number(runMatch[1]) : null;
