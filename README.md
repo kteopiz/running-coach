@@ -36,7 +36,7 @@ use Monday through Sunday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, the calorie estimate, and calorie-goal history.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, recommendations, meal logging, daily calorie progress, the calorie estimate, and calorie-goal history using temporary databases.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -106,6 +106,69 @@ notes are preserved when editing. History is unpaginated for this sprint.
 Weekly remaining mileage is clamped to zero; exceeding the goal shows the extra
 distance, while the progress bar stops at 100%.
 
+## Today's recommendation
+
+The dashboard suggests one distance for today from the signed-in runner's weekly
+goal and the miles already completed this week (Monday through today). The rules
+live in `src/lib/recommendation.js` and do not use age, height, or weight.
+
+### TS-05 inputs and outputs
+
+`recommendToday` accepts `goalMiles`, `completedMiles` (default 0), `runDates`
+(default empty), `today` (default the local current date), and optional `daysLeft`.
+Use validated YYYY-MM-DD run dates and a valid Date or YYYY-MM-DD value for
+`today`. Supply `today` explicitly for reproducible tests. The dashboard supplies
+all run dates and the API's Monday-through-today total. Age, height, and weight
+are not inputs.
+
+A missing, nonfinite, or nonpositive goal produces no recommendation. Negative
+or nonfinite completed mileage counts as zero. Days left are derived from the
+local calendar (Monday 7, Sunday 1), or a supplied finite value is truncated and
+clamped to 1–7. Only distinct run dates from Monday through today count toward
+recovery; duplicates, earlier weeks, and future dates do not count.
+
+Outputs include `todayMiles`, `remainingMiles`, `daysLeft`, `ranToday`, a `status`
+(`no-goal`, `suggested`, `reduced`, or `rest`), and an explanatory `message`.
+Missing goals return null distances; rest returns zero today miles.
+
+### Rule priority and precision
+
+Rules are centralized in `src/lib/recommendation.js` and applied in this order:
+
+1. No valid goal: ask the runner to set one.
+2. Goal met or exceeded: recommend rest, with zero remaining miles.
+3. Three distinct run days this week: recommend rest even with miles remaining.
+   These days do not have to be consecutive.
+4. Otherwise split the remaining miles across days left, including today. Bound
+   the suggestion by 6 miles, 25% of the goal, and actual remaining miles.
+5. Round the suggestion to tenths, rounding down when needed to respect those
+   bounds. A 15-mile goal has an exact 3.75-mile cap, so at most 3.7 miles is
+   suggested. If a run is already logged today, halve the bounded suggestion
+   and round to tenths again.
+6. A zero suggestion means rest. A tiny positive remainder does not mean the
+   weekly goal is complete; the message distinguishes this case.
+
+The API preserves weekly totals without rounding to tenths. Remaining mileage
+is `max(0, goal - completed)`, shared by weekly progress and the coach. Calculations
+use JavaScript numbers; display rounding does not determine completion. Positive
+dashboard distances below 0.1 display as `<0.1`, and an incomplete goal never
+shows 100%. Logging, editing, or deleting a run reloads activity and recalculates
+the recommendation while existing content remains visible.
+
+### Sprint 3 / TS-05 verification
+
+- Focused checks: `node --test tests/recommendation.test.mjs tests/sprint3.test.mjs`
+  passed all 12 tests. Coverage includes no runs, partial/completed goals,
+  representative run changes, recovery days, fractional caps, tiny remainders,
+  and duplicate/out-of-week dates.
+- `npm run build` passed.
+- Full suite: run `npm test`. New API/progress regressions cover a 14.96-mile
+  total against a 15-mile goal, exact completion after editing, deletion, and
+  small goals. Full-suite execution is pending user verification.
+- Browser acceptance remains pending: create, edit, delete, and move runs between
+  weeks; verify refreshed totals and guidance. Check rest/reduced messages,
+  unset goals, and `<0.1` remaining without premature completion.
+
 ## Sprint 2 acceptance checks
 
 Automated: `npm test` and `npm run build`. The focused run API test covers real
@@ -128,9 +191,40 @@ Browser review checklist (use sample accounts or a disposable local database):
 5. Set a goal, log enough mileage to meet/exceed it, and confirm remaining is zero.
 6. Reload to verify persistence; sign in as Alex to verify separate history.
 
-Implementation verification: all five automated tests and the production build
-passed. Browser interaction checks remain pending because no browser was
-available to the automation environment. No failing automated checks remain.
+Historical Sprint 2 verification: its five automated tests and production build
+passed at that time. Browser interaction checks remained pending. See the
+Sprint 3 / TS-05 section above for current verification status.
+
+### meals
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| id | INTEGER, primary key | Meal identifier |
+| user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their meals |
+| meal_date | TEXT, required | Selected calendar date in YYYY-MM-DD format |
+| meal_time | TEXT, required | Time of day as HH:MM, from 00:00 through 23:59 |
+| kind | TEXT, required | breakfast, lunch, dinner, or snack |
+| description | TEXT, required | What was eaten, 1 to 200 characters |
+| calories | INTEGER, required | Whole-number calories from 1 to 10000 |
+| weight_lb | REAL, required | Profile weight in pounds copied when the meal is logged |
+| created_at | TEXT, required | UTC creation timestamp, filled automatically |
+
+Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
+
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. This is one current goal, not a history of goals by date.
+
+### Meal API
+
+All meal endpoints require the session cookie. The server chooses the owner and the stored weight from the session.
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /api/meals` | All meals owned by the signed-in user |
+| `POST /api/meals` | Create with `{ date, time, kind, description, calories }`; returns 201 and `meal` |
+| `PATCH /api/meals/:id` | Update those fields for an owned meal; weight stays as first logged |
+| `DELETE /api/meals/:id` | Delete the owned meal; returns 200 |
+
+Validation returns 400 with field `errors`. Signed-out requests return 401. Missing meals and another user's meals return 404. Dates must be real and cannot be in the future. Consumed calories are the sum for the selected date. Remaining is the daily goal minus consumed, and it does not drop below zero. Going over the goal shows the extra calories separately. With no daily goal, remaining is unset.
 
 ### calorie_goals
 
