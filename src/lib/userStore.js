@@ -29,3 +29,7 @@ export const getActivity = () => request("/runs");
 export const createRun = (fields) => request("/runs", "POST", fields);
 export const updateRun = (id, fields) => request(`/runs/${id}`, "PATCH", fields);
 export const deleteRun = (id) => request(`/runs/${id}`, "DELETE");
+export const getMeals = () => request("/meals");
+export const createMeal = (fields) => request("/meals", "POST", fields);
+export const updateMeal = (id, fields) => request(`/meals/${id}`, "PATCH", fields);
+export const deleteMeal = (id) => request(`/meals/${id}`, "DELETE");

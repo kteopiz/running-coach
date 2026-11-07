@@ -4,6 +4,7 @@ import { weeklyProgress } from "../lib/weeklyProgress";
 import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
+import MealLog from "../components/MealLog";
 import RunHistory from "../components/RunHistory";
 
 function formatMiles(value) {
@@ -90,6 +91,7 @@ export default function Dashboard({ user, onNavigate }) {
           </div> : null}
         </> : null}
       </section>
+      <MealLog user={user} onNavigate={onNavigate} />
       <div className="dashboard-grid">
         <RunHistory runs={activity?.runs || []} loading={loadingActivity}
           error={activityError} onRefresh={() => setRevision(value => value + 1)} />
