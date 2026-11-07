@@ -23,6 +23,12 @@ export function initializeDatabase(db, { reset = false } = {}) {
     if (!userColumns.includes("daily_calorie_goal")) {
       db.exec("ALTER TABLE users ADD COLUMN daily_calorie_goal INTEGER");
     }
+    const runColumns = db.prepare("PRAGMA table_info(runs)").all().map((column) => column.name);
+    if (runColumns.length && !runColumns.includes("start_time")) {
+      db.exec(`ALTER TABLE runs ADD COLUMN start_time TEXT CHECK (
+        start_time IS NULL OR (length(start_time) = 5 AND start_time GLOB '[0-2][0-9]:[0-5][0-9]' AND start_time <= '23:59')
+      )`);
+    }
     // Seed once, even if a teammate later edits or removes the sample accounts.
     if (!existing) db.exec(readFileSync(resolve(root, "db/seed.sql"), "utf8"));
     db.exec("COMMIT");

@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
+import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
 import MealLog from "../components/MealLog";
 import RunHistory from "../components/RunHistory";
 
 function formatMiles(value) {
+  if (Number(value) > 0 && Number(value) < 0.1) return "<0.1";
   const rounded = Math.round(Number(value) * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
@@ -20,26 +22,29 @@ export default function Dashboard({ user, onNavigate }) {
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState("");
   const [loadingActivity, setLoadingActivity] = useState(true);
+  const hasActivity = useRef(false);
 
   useEffect(() => {
     let active = true;
 
-    async function load(isRefresh) {
-      if (!isRefresh) setLoadingActivity(true);
+    async function load() {
+      const refresh = hasActivity.current;
+      if (!refresh) setLoadingActivity(true);
       const result = await getActivity();
       if (!active) return;
       if (!result.ok) {
-        setActivity(null);
+        if (!refresh) setActivity(null);
         setActivityError(result.error || "Could not load this week's mileage.");
       } else {
         setActivity(result);
         setActivityError("");
+        hasActivity.current = true;
       }
       setLoadingActivity(false);
     }
 
-    load(false);
-    const onFocus = () => load(true);
+    load();
+    const onFocus = () => load();
     window.addEventListener("focus", onFocus);
     return () => {
       active = false;
@@ -48,7 +53,12 @@ export default function Dashboard({ user, onNavigate }) {
   }, [user.weeklyMileageGoal, revision]);
 
   const progress = activity ? weeklyProgress(activity.weeklyMiles, user.weeklyMileageGoal) : null;
-  const progressPercent = progress?.progress == null ? 0 : Math.round(progress.progress * 100);
+  const recommendation = activity ? recommendToday({
+    completedMiles: activity.weeklyMiles,
+    goalMiles: user.weeklyMileageGoal,
+    runDates: activity.runs.map((run) => run.date),
+  }) : null;
+  const progressPercent = progress?.progress == null ? 0 : Math.min(progress.status === "in-progress" ? 99 : 100, Math.round(progress.progress * 100));
 
   return (
     <AppShell user={user} page="dashboard" onNavigate={onNavigate}>
@@ -74,6 +84,11 @@ export default function Dashboard({ user, onNavigate }) {
             </div>
             <div className="progress-caption"><span>{progress.status === "over-goal" ? `${formatMiles(progress.overMiles)} miles beyond your goal. Nice work.` : progress.status === "complete" ? "Weekly goal reached. Nice work." : "Every run counts. Keep it going."}</span><strong>{progressPercent}% complete</strong></div>
           </> : <p className="muted">Set a weekly goal to track your progress.</p>}
+          {recommendation ? <div className="recommendation" aria-live="polite">
+            <p className="metric-label" id="today-heading">Today</p>
+            <p className="recommendation-miles">{recommendation.todayMiles == null ? "—" : formatMiles(recommendation.todayMiles)}<span> mi</span></p>
+            <p className="muted">{recommendation.message}</p>
+          </div> : null}
         </> : null}
       </section>
       <MealLog user={user} onNavigate={onNavigate} />
