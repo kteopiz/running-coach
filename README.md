@@ -263,3 +263,57 @@ a password clears the account's existing sessions.
 
 Accounts now live in SQLite rather than browser localStorage. Existing browser
 accounts are not imported automatically; use the sample accounts or register again.
+
+## Sprint 4 — Shriyans acceptance work
+
+Source: Product Backlog, Sprint 4, assignee Shriyans Machabatula.
+The existing meal storage, ownership checks, validation, calorie calculation, and
+selected-date progress are retained and covered by the new acceptance suite.
+
+| Ticket | Implementation / acceptance coverage |
+| --- | --- |
+| US-14.3 | Valid profile and numeric-string inputs; missing/invalid measurements and mileage; actionable profile messages; nonpositive/overflow estimate protection |
+| US-15.3 | Required calories, integer limits 1–10000, invalid types and values; shared form/API validation; invalid entries never persist |
+| US-16.3 | Signed-out access, cross-account reads/edits/deletes, forged ownership/weight, edits, moving dates, deleting the final meal, empty totals |
+| US-17 | Selected date defaults to today; consumed, current saved daily goal, remaining and over-goal amounts; failed meal loads hide totals instead of displaying zero |
+| US-17.3 | Multiple meals, other-date exclusion, exact/over-goal boundaries, refresh after persisted edits/deletes/date moves, profile goal changes |
+| TS-06 | SQLite meal persistence across reopening, user isolation, documented calculation and shared validation; invalid estimate outputs are suppressed |
+| TS-07 | Educational-use notes beside running guidance, calorie estimates and meal totals; explicit distinction between the estimate and the saved daily goal |
+
+The estimate uses the existing simplified rule: resting calories are
+`round(10 × weightKg + 6.25 × heightCm − 5 × age − 78)`, plus
+`round(weeklyGoalMiles × weightLb × 0.63 / 7)` running calories. Pounds are
+converted using 2.2046226218 pounds/kg and inches using 2.54 cm/inch. Inputs must
+be finite and positive, with whole-number age. Unsupported results (nonpositive
+resting/total calories or a total outside the safe integer range) show a profile
+review message. This is educational guidance, not a medical prescription.
+
+Run this assignment's acceptance suite with:
+
+```sh
+node --test tests/sprint4.test.mjs
+```
+
+The API acceptance client dispatches through the real request listener with real
+sessions and SQLite, without binding a port. It checks application behavior;
+HTTP transport and browser interaction still require the regular app environment.
+
+Verification in the restricted development environment: all four Sprint 4 test
+groups pass, and `npm run build` passes. The full `npm test` run reports 26 passing
+and 10 failing tests; the ten failures cannot bind a local port (`listen EPERM`).
+They are environment-blocked, not verified passes.
+
+Browser acceptance checklist (pending in an environment that allows local ports):
+
+1. Sign in as Alex; verify the estimate and educational note. Clear the weekly
+   goal and verify the missing-goal message and profile action.
+2. Set a saved daily calorie goal, log two meals today, and verify consumed and
+   remaining against their sum. The estimate remains separate from this goal.
+3. Edit calories, move a meal to another date, then delete both meals. Check
+   refreshed totals and the empty state; cancel a deletion and verify no change.
+4. Select yesterday and verify today's meals are excluded. Meet/exceed the saved
+   goal and verify zero remaining, an explicit overage, and a capped progress bar.
+5. Fail the meals request and verify an error/retry appears without invented zero
+   totals. Retry successfully, then sign in as Sam and verify meals are isolated.
+6. Check keyboard use and narrow-screen layout, including validation messages and
+   visible disclaimers. These interaction checks have not been performed here.

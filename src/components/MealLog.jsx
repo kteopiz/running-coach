@@ -30,8 +30,8 @@ export default function MealLog({ user, onNavigate }) {
   const today = localDate();
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) && selectedDate <= today;
   const dayMeals = meals.filter((meal) => meal.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time) || a.id - b.id);
-  const progress = dateReady ? calorieProgress(meals, user.dailyCalorieGoal, selectedDate) : null;
-  const progressPercent = progress?.goalCalories ? Math.min(100, Math.round((progress.consumedCalories / progress.goalCalories) * 100)) : 0;
+  const progress = dateReady && !error ? calorieProgress(meals, user.dailyCalorieGoal, selectedDate) : null;
+  const progressPercent = progress?.goalCalories ? Math.min(progress.status === "in-progress" ? 99 : 100, Math.round((progress.consumedCalories / progress.goalCalories) * 100)) : 0;
 
   useEffect(() => {
     let active = true;
@@ -107,7 +107,7 @@ export default function MealLog({ user, onNavigate }) {
               <div className="progress-track" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Daily calorie progress">
                 <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
               </div>
-              <div className="progress-caption">
+              <div className="progress-caption" aria-live="polite">
                 <span>{progress.status === "over-goal" ? `${progress.overCalories.toLocaleString()} cal over your goal.` : progress.status === "complete" ? "Daily calorie goal reached." : `Calories logged for ${formatDate(selectedDate)}.`}</span>
                 <strong>{progressPercent}% of goal</strong>
               </div>
@@ -115,6 +115,7 @@ export default function MealLog({ user, onNavigate }) {
           ) : null}
         </>
       ) : null}
+      <p className="panel-note">Your saved daily calorie goal is separate from the educational estimate above. Calorie tracking is for educational use and is not medical advice.</p>
       {editing ? <MealForm key={editing.id || "new"} meal={editing} user={user} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}

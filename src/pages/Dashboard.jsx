@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
-import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, calorieEstimateMessage, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
@@ -90,6 +90,7 @@ export default function Dashboard({ user, onNavigate }) {
             <p className="metric-label" id="today-heading">Today</p>
             <p className="recommendation-miles">{recommendation.todayMiles == null ? "—" : formatMiles(recommendation.todayMiles)}<span> mi</span></p>
             <p className="muted">{recommendation.message}</p>
+            <p className="panel-note">Educational running guidance only. This is not medical advice.</p>
           </div> : null}
         </> : null}
       </section>
@@ -98,8 +99,8 @@ export default function Dashboard({ user, onNavigate }) {
         {calorieEstimate ? <>
           <p className="metric-label">{calorieEstimate.label}</p>
           <p className="metric-value">{calorieEstimate.calories.toLocaleString()}<span> cal</span></p>
-          <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
-        </> : <p className="muted">Set a weekly mileage goal to calculate an educational daily calorie estimate.</p>}
+        </> : <p className="muted">{calorieEstimateMessage(user)} <button className="text-button" onClick={() => onNavigate("profile")}>Review profile & goal</button></p>}
+        <p className="panel-note">{CALORIE_ESTIMATE_NOTE}</p>
       </section>
       <MealLog user={user} onNavigate={onNavigate} />
       <div className="dashboard-grid">
