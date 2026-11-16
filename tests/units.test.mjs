@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { createApi } from "../server/api.mjs";
+import { recommendToday } from "../src/lib/recommendation.js";
 import {
   convertDistanceEntry,
   convertHeightEntry,
@@ -112,6 +113,21 @@ test("unit preference persists and stored inches and miles stay canonical", asyn
       age: 25, height: 67, weight: 145, weeklyMileageGoal: 15, unitSystem: "stones",
     })).status, 400);
     assert.equal((await request("/session")).user.unitSystem, "metric");
+    const profile = { age: 25, height: 67, weight: 145, weeklyMileageGoal: 15, dailyCalorieGoal: 2200, unitSystem: "metric" };
+    assert.equal((await request("/profile", "PATCH", profile)).user.dailyCalorieGoal, 2200);
+    const switched = await request("/profile", "PATCH", { ...profile, unitSystem: "imperial", dailyCalorieGoal: 2400 });
+    assert.equal(switched.user.unitSystem, "imperial");
+    assert.equal(switched.user.dailyCalorieGoal, 2400);
+    assert.deepEqual((await request("/calorie-goals")).goals.map((goal) => goal.calories), [2400, 2200]);
+    const invalid = await request("/profile", "PATCH", { ...profile, unitSystem: "invalid", dailyCalorieGoal: 2600 });
+    assert.equal(invalid.status, 400);
+    assert.equal((await request("/session")).user.dailyCalorieGoal, 2400);
+    assert.equal((await request("/calorie-goals")).goals.length, 2);
+    await request("/profile", "PATCH", { ...profile, dailyCalorieGoal: null });
+    const cleared = (await request("/session")).user;
+    assert.equal(cleared.unitSystem, "metric");
+    assert.equal(cleared.dailyCalorieGoal, null);
+    assert.deepEqual((await request("/calorie-goals")).goals.map((goal) => goal.calories), [null, 2400, 2200]);
     cookie = "";
     const registered = await request("/register", "POST", {
       name: "Metric Runner", email: "metric@example.com", password: "secret1", age: 22, height: 67, weight: 145, unitSystem: "metric",
@@ -127,4 +143,19 @@ test("unit preference persists and stored inches and miles stay canonical", asyn
     await new Promise((resolve) => server.close(resolve));
     db.close();
   }
+});
+
+
+test("unit display preserves grouped numbers and converts every coaching distance", () => {
+  assert.equal(formatDistanceAmount(1234.5, "imperial"), "1,234.5");
+  assert.equal(formatDistanceAmount(1000, "metric"), "1,609.34");
+  const capped = recommendToday({ goalMiles: 100, today: "2026-11-21" });
+  const message = recommendationText(capped, "metric");
+  assert.match(message, /9\.66 km/);
+  assert.match(message, /160\.93-km week/);
+  assert.match(message, /25%/);
+  assert.doesNotMatch(message, /miles?|(?<![\d.])(?:6 km|100-km)/);
+  const reduced = recommendToday({ goalMiles: 20, today: "2026-11-21", runDates: ["2026-11-21"] });
+  assert.match(recommendationText(reduced, "metric"), /8\.05-km cap/);
+  assert.equal(recommendationText(capped, "imperial"), capped.message);
 });
