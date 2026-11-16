@@ -30,7 +30,7 @@ Sample accounts (both use password **demo123**):
 | sam@example.com | Profile with no weekly goal or runs |
 
 Seed run dates are relative to the date the database is created. Weekly totals
-use Monday through Sunday in the server computer's local time.
+use Sunday through Saturday in the server computer's local time.
 
 ## Database commands
 
@@ -95,7 +95,7 @@ the session, ignoring client-supplied ownership fields.
 
 | Method and path | Behavior |
 | --- | --- |
-| `GET /api/runs` | All owned runs and `weeklyMiles` (Monday through today, inclusive) |
+| `GET /api/runs` | All owned runs and `weeklyMiles` (Sunday through today, inclusive) |
 | `POST /api/runs` | Create with `{ date, distanceMiles, durationMinutes }`; returns 201 and `run` |
 | `PATCH /api/runs/:id` | Update all three required fields; returns 200 and `run` |
 | `DELETE /api/runs/:id` | Delete the owned run; returns 200 |
@@ -109,7 +109,7 @@ distance, while the progress bar stops at 100%.
 ## Today's recommendation
 
 The dashboard suggests one distance for today from the signed-in runner's weekly
-goal and the miles already completed this week (Monday through today). The rules
+goal and the miles already completed this week (Sunday through today). The rules
 live in `src/lib/recommendation.js` and do not use age, height, or weight.
 
 ### TS-05 inputs and outputs
@@ -118,13 +118,13 @@ live in `src/lib/recommendation.js` and do not use age, height, or weight.
 (default empty), `today` (default the local current date), and optional `daysLeft`.
 Use validated YYYY-MM-DD run dates and a valid Date or YYYY-MM-DD value for
 `today`. Supply `today` explicitly for reproducible tests. The dashboard supplies
-all run dates and the API's Monday-through-today total. Age, height, and weight
+all run dates and the API's Sunday-through-today total. Age, height, and weight
 are not inputs.
 
 A missing, nonfinite, or nonpositive goal produces no recommendation. Negative
 or nonfinite completed mileage counts as zero. Days left are derived from the
-local calendar (Monday 7, Sunday 1), or a supplied finite value is truncated and
-clamped to 1–7. Only distinct run dates from Monday through today count toward
+local calendar (Sunday 7, Saturday 1), or a supplied finite value is truncated and
+clamped to 1–7. Only distinct run dates from Sunday through today count toward
 recovery; duplicates, earlier weeks, and future dates do not count.
 
 Outputs include `todayMiles`, `remainingMiles`, `daysLeft`, `ranToday`, a `status`
@@ -181,7 +181,7 @@ the recommendation while existing content remains visible.
 Automated: `npm test` and `npm run build`. The focused run API test covers real
 create/update/delete requests, missing/non-numeric/nonpositive inputs, invalid
 and future dates, signed-out and cross-user access, full history ordering,
-Monday/previous-Sunday boundaries, and totals after date/distance changes and
+Sunday/previous-Saturday boundaries, and totals after date/distance changes and
 deletion. A small progress test covers unset, incomplete, met, and exceeded goals.
 The database test also verifies run persistence after closing and reopening.
 

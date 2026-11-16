@@ -69,7 +69,7 @@ export default function Dashboard({ user, onNavigate }) {
         <span className="date-label">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
       </div>
       <section className="panel weekly-panel" aria-labelledby="progress-heading">
-        <div className="section-heading"><div><h2 id="progress-heading">This week</h2><p className="muted">Monday – Sunday · Miles</p></div>
+        <div className="section-heading"><div><h2 id="progress-heading">This week</h2><p className="muted">Sunday – Saturday · Miles</p></div>
           <button className="text-button" onClick={() => onNavigate("profile")}>{hasGoal ? "Edit goal" : "Set weekly goal"} <span aria-hidden="true">↗</span></button>
         </div>
         <div className="metrics">

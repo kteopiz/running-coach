@@ -62,10 +62,16 @@ function asDate(value) {
   return new Date();
 }
 
-export function daysLeftInWeek(today = new Date()) {
+// Sunday is the first day (7 left) and Saturday is the last (1 left).
+export function weekBounds(today = new Date()) {
   const date = asDate(today);
-  const mondayIndex = (date.getDay() + 6) % 7;
-  return RECOMMENDATION_RULES.maxDaysLeft - mondayIndex;
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+  return { start, end, startDate: localDate(start), endDate: localDate(end) };
+}
+
+export function daysLeftInWeek(today = new Date()) {
+  return RECOMMENDATION_RULES.maxDaysLeft - asDate(today).getDay();
 }
 
 export function clampDaysLeft(daysLeft, today = new Date()) {
@@ -92,11 +98,9 @@ export function remainingMiles(completedMiles, goalMiles) {
 function datesThisWeek(runDates, today) {
   const date = asDate(today);
   const todayString = localDate(date);
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-  const mondayString = localDate(monday);
+  const { startDate } = weekBounds(date);
   return [...new Set((Array.isArray(runDates) ? runDates : []).filter(
-    (runDate) => typeof runDate === "string" && runDate >= mondayString && runDate <= todayString,
+    (runDate) => typeof runDate === "string" && runDate >= startDate && runDate <= todayString,
   ))];
 }
 

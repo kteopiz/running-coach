@@ -5,6 +5,7 @@ import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { createApi } from "../server/api.mjs";
 import { weeklyProgress } from "../src/lib/weeklyProgress.js";
 import { localDate } from "../src/lib/runValidation.js";
+import { weekBounds } from "../src/lib/recommendation.js";
 
 test("run API validates inputs, isolates owners, and refreshes sorted history and weekly totals after CRUD", async () => {
   const db = openDatabase(":memory:");
@@ -25,10 +26,9 @@ test("run API validates inputs, isolates owners, and refreshes sorted history an
     return { status: response.status, ...await response.json() };
   };
   const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
-  const previousSunday = new Date(monday);
-  previousSunday.setDate(monday.getDate() - 1);
+  const weekStart = new Date(`${weekBounds(today).startDate}T12:00:00`);
+  const previousSaturday = new Date(weekStart);
+  previousSaturday.setDate(weekStart.getDate() - 1);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
   const valid = { date: localDate(today), startTime: "08:00", distanceMiles: 3, durationMinutes: 30 };
@@ -57,14 +57,14 @@ test("run API validates inputs, isolates owners, and refreshes sorted history an
     const changed = await request(`/runs/${id}`, "PATCH", { ...valid, distanceMiles: 4.5, durationMinutes: 40 });
     assert.equal(changed.run.durationMinutes, 40);
     assert.equal((await request("/runs")).weeklyMiles, 4.5);
-    await request(`/runs/${id}`, "PATCH", { ...valid, date: localDate(previousSunday) });
+    await request(`/runs/${id}`, "PATCH", { ...valid, date: localDate(previousSaturday) });
     assert.equal((await request("/runs")).weeklyMiles, 0);
-    await request(`/runs/${id}`, "PATCH", { ...valid, date: localDate(monday) });
+    await request(`/runs/${id}`, "PATCH", { ...valid, date: localDate(weekStart) });
     assert.equal((await request("/runs")).weeklyMiles, 3);
 
     // More than five entries must remain visible; older weeks must not affect this week.
     for (let i = 0; i < 5; i++) {
-      const date = new Date(previousSunday);
+      const date = new Date(previousSaturday);
       date.setDate(date.getDate() - i);
       assert.equal((await request("/runs", "POST", { ...valid, date: localDate(date) })).status, 201);
     }

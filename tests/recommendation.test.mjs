@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import { RECOMMENDATION_RULES, clampDaysLeft, dailyCap, daysLeftInWeek, recommendToday, remainingMiles } from "../src/lib/recommendation.js";
 
 test("recommendation inputs stay inside the stated bounds", () => {
-  assert.equal(daysLeftInWeek("2026-10-19"), 7);
-  assert.equal(daysLeftInWeek("2026-10-23"), 3);
-  assert.equal(daysLeftInWeek("2026-10-25"), 1);
+  assert.equal(daysLeftInWeek("2026-10-18"), 7);
+  assert.equal(daysLeftInWeek("2026-10-19"), 6);
+  assert.equal(daysLeftInWeek("2026-10-23"), 2);
+  assert.equal(daysLeftInWeek("2026-10-24"), 1);
   assert.equal(clampDaysLeft(99, "2026-10-19"), RECOMMENDATION_RULES.maxDaysLeft);
   assert.equal(clampDaysLeft(0, "2026-10-19"), RECOMMENDATION_RULES.minDaysLeft);
-  assert.equal(clampDaysLeft(undefined, "2026-10-23"), 3);
+  assert.equal(clampDaysLeft(undefined, "2026-10-23"), 2);
 
   const cap = dailyCap(14);
   assert.equal(cap, 3.5);
@@ -157,10 +158,10 @@ test("a tiny positive remainder recommends rest without declaring the goal compl
 });
 
 test("recovery counts distinct current-week days, including nonconsecutive days", () => {
-  const inputs = { goalMiles: 20, completedMiles: 6, today: "2026-10-25" };
-  const baseline = recommendToday({ ...inputs, runDates: ["2026-10-19"] });
-  assert.deepEqual(recommendToday({ ...inputs, runDates: ["2026-10-19", "2026-10-19", "2026-10-18", "2026-10-26"] }), baseline);
-  const rest = recommendToday({ ...inputs, runDates: ["2026-10-19", "2026-10-21", "2026-10-23"] });
+  const inputs = { goalMiles: 20, completedMiles: 6, today: "2026-10-31" };
+  const baseline = recommendToday({ ...inputs, runDates: ["2026-10-25"] });
+  assert.deepEqual(recommendToday({ ...inputs, runDates: ["2026-10-25", "2026-10-25", "2026-10-24", "2026-11-01"] }), baseline);
+  const rest = recommendToday({ ...inputs, runDates: ["2026-10-25", "2026-10-27", "2026-10-29"] });
   assert.equal(rest.status, "rest");
   assert.equal(rest.todayMiles, 0);
   assert.equal(rest.remainingMiles, 14);
