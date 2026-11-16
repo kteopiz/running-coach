@@ -5,7 +5,7 @@ import { MEASUREMENT_MIN, getCalorieGoals, updateCurrentAccount, updateCurrentUs
 import { formatCalories } from "../lib/format";
 import UnitSystemField from "../components/UnitSystemField";
 import HeightFields from "../components/HeightFields";
-import { convertHeightEntry, heightFieldsFromInches, inchesFromHeightEntry } from "../lib/units";
+import { convertDistanceEntry, convertHeightEntry, distanceInputValue, heightFieldsFromInches, inchesFromHeightEntry, milesFromDistanceEntry, weeklyGoalLabel } from "../lib/units";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [unitSystem, setUnitSystem] = useState(user.unitSystem === "metric" ? "metric" : "imperial");
@@ -15,9 +15,9 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const [centimeters, setCentimeters] = useState(startingHeight.centimeters);
   const [age, setAge] = useState(String(user.age ?? ""));
   const [weight, setWeight] = useState(String(user.weight ?? ""));
-  const [weeklyMileageGoal, setWeeklyMileageGoal] = useState(
+  const [weeklyGoal, setWeeklyGoal] = useState(
     user.weeklyMileageGoal !== null && user.weeklyMileageGoal !== undefined
-      ? String(user.weeklyMileageGoal)
+      ? distanceInputValue(user.weeklyMileageGoal, user.unitSystem === "metric" ? "metric" : "imperial")
       : ""
   );
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState(
@@ -29,20 +29,23 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const [pending, setPending] = useState(false);
   const heightEntry = { unitSystem, feet, inches: inchPart, centimeters };
   const heightInches = inchesFromHeightEntry(heightEntry).inches;
-  const calorieEstimate = estimateDailyCalories({ age, height: heightInches, weight, weeklyMileageGoal });
+  const goalMiles = milesFromDistanceEntry(weeklyGoal, unitSystem).miles;
+  const calorieEstimate = estimateDailyCalories({ age, height: heightInches, weight, weeklyMileageGoal: goalMiles });
 
   function changeUnits(next) {
     if (next === unitSystem) return;
     const converted = convertHeightEntry(heightEntry, next);
-    if (converted.error) {
-      setErrors((current) => ({ ...current, height: converted.error }));
+    const convertedGoal = convertDistanceEntry(weeklyGoal, unitSystem, next);
+    if (converted.error || convertedGoal.error) {
+      setErrors((current) => ({ ...current, height: converted.error, weeklyMileageGoal: convertedGoal.error }));
       return;
     }
     setUnitSystem(next);
     setFeet(converted.feet);
     setInchPart(converted.inches);
     setCentimeters(converted.centimeters);
-    setErrors((current) => ({ ...current, height: undefined }));
+    setWeeklyGoal(convertedGoal.value);
+    setErrors((current) => ({ ...current, height: undefined, weeklyMileageGoal: undefined }));
   }
 
   async function handleSubmit(event) {
@@ -50,14 +53,16 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     if (pending) return;
     setSuccess("");
     const parsedHeight = inchesFromHeightEntry(heightEntry);
+    const parsedGoal = milesFromDistanceEntry(weeklyGoal, unitSystem);
     const nextErrors = validateProfileFields({
       age,
       height: parsedHeight.inches ?? "",
       weight,
-      weeklyMileageGoal,
+      weeklyMileageGoal: parsedGoal.miles ?? "",
       dailyCalorieGoal,
     });
     if (parsedHeight.error) nextErrors.height = parsedHeight.error;
+    if (parsedGoal.error) nextErrors.weeklyMileageGoal = parsedGoal.error;
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -69,7 +74,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       age: Number(age),
       height: parsedHeight.inches,
       weight: Number(weight),
-      weeklyMileageGoal: Number(weeklyMileageGoal),
+      weeklyMileageGoal: parsedGoal.miles,
       dailyCalorieGoal: dailyCalorieGoal === "" ? null : Number(dailyCalorieGoal),
       unitSystem,
     });
@@ -135,14 +140,14 @@ export default function Profile({ user, onUserChange, onNavigate }) {
         </label>
 
         <label className="weekly-goal-field">
-          Weekly mileage goal (miles)
+          {weeklyGoalLabel(unitSystem)}
           <input
             name="weeklyMileageGoal"
             type="number"
             min="0.1"
-            step="0.1"
-            value={weeklyMileageGoal}
-            onChange={(event) => setWeeklyMileageGoal(event.target.value)}
+            step="0.01"
+            value={weeklyGoal}
+            onChange={(event) => setWeeklyGoal(event.target.value)}
             aria-invalid={Boolean(errors.weeklyMileageGoal)}
           />
           {errors.weeklyMileageGoal ? (

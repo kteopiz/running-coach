@@ -1,3 +1,5 @@
+import { formatGrouped, formatMiles } from "./format.js";
+
 export const CM_PER_INCH = 2.54;
 export const KM_PER_MILE = 1.609344;
 export const INCHES_PER_FOOT = 12;
@@ -122,10 +124,9 @@ export function formatDistanceAmount(miles, unitSystem) {
   if (normalizeUnitSystem(unitSystem) === "metric") {
     const km = milesToKilometers(value);
     if (value > 0 && km < 0.01) return "<0.01";
-    return trimNumber(km, 2);
+    return formatGrouped(km);
   }
-  if (value > 0 && value < 0.1) return "<0.1";
-  return trimNumber(Math.round(value * 10) / 10, 1);
+  return formatMiles(value);
 }
 
 export function distanceUnitShort(unitSystem) {
@@ -150,9 +151,8 @@ export function weeklyGoalLabel(unitSystem) {
 
 export function recommendationText(recommendation, unitSystem) {
   if (!recommendation?.message || normalizeUnitSystem(unitSystem) !== "metric") return recommendation?.message || "";
-  let message = recommendation.message.replace("0.1 miles", `${milesToKilometers(0.1)} km`);
-  if (recommendation.todayMiles) {
-    message = message.replace(String(recommendation.todayMiles), formatDistanceAmount(recommendation.todayMiles, "metric"));
-  }
-  return message.replaceAll("miles", "km").replaceAll("mile", "km");
+  return recommendation.message
+    .replace(/(\d+(?:\.\d+)?)([ -])miles?\b/g, (_, amount, separator) =>
+      `${formatDistanceAmount(Number(amount), "metric")}${separator}km`)
+    .replace(/\bmiles?\b/g, "km");
 }
