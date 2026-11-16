@@ -76,3 +76,34 @@ export function groupMealsByDay({ meals = [], today = new Date() } = {}) {
   const total = days.reduce((sum, day) => sum + day.calories, 0);
   return { startDate, todayDate, days, total, empty: days.length === 0 };
 }
+
+export function dailyTimeline({ runs = [], meals = [], date } = {}) {
+  const items = [
+    ...(Array.isArray(runs) ? runs : []).filter((run) => run.date === date).map((run) => ({
+      type: "run",
+      time: run.startTime || "",
+      id: `run-${run.id}`,
+      miles: Number(run.distanceMiles || 0),
+      label: run.notes?.trim() || "Run",
+    })),
+    ...(Array.isArray(meals) ? meals : []).filter((meal) => meal.date === date).map((meal) => ({
+      type: "meal",
+      time: meal.time || "",
+      id: `meal-${meal.id}`,
+      calories: Number(meal.calories || 0),
+      label: meal.description || meal.kind,
+      kind: meal.kind,
+    })),
+  ].sort((left, right) => {
+    if (!left.time && !right.time) return 0;
+    if (!left.time) return 1;
+    if (!right.time) return -1;
+    return left.time.localeCompare(right.time);
+  });
+  return {
+    date,
+    items,
+    miles: roundTenth(items.filter((item) => item.type === "run").reduce((sum, item) => sum + item.miles, 0)),
+    calories: items.filter((item) => item.type === "meal").reduce((sum, item) => sum + item.calories, 0),
+  };
+}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calorieChartDays, groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../src/lib/summary.js";
+import { calorieChartDays, dailyTimeline, groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../src/lib/summary.js";
 import { weekBounds } from "../src/lib/week.js";
 
 test("the calorie chart compares logged calories with the dated goal and skips future goals", () => {
@@ -82,4 +82,25 @@ test("meals group by day and period and the weekly total matches the days", () =
   assert.equal(grouped.total, grouped.days.reduce((sum, day) => sum + day.calories, 0));
   assert.equal(grouped.total, 1850);
   assert.equal(groupMealsByDay({ today: "2026-11-15", meals: [] }).empty, true);
+});
+
+test("a daily timeline orders a run before a later breakfast and totals those items", () => {
+  const timeline = dailyTimeline({
+    date: "2026-11-15",
+    runs: [
+      { id: 1, date: "2026-11-15", startTime: "08:00", distanceMiles: 3, notes: "Easy" },
+      { id: 2, date: "2026-11-15", startTime: null, distanceMiles: 1, notes: "" },
+      { id: 3, date: "2026-11-14", startTime: "07:00", distanceMiles: 5, notes: "Other day" },
+    ],
+    meals: [
+      { id: 9, date: "2026-11-15", time: "08:30", kind: "breakfast", description: "Oats", calories: 400 },
+    ],
+  });
+  assert.deepEqual(timeline.items.map((item) => [item.type, item.time]), [
+    ["run", "08:00"],
+    ["meal", "08:30"],
+    ["run", ""],
+  ]);
+  assert.equal(timeline.miles, 4);
+  assert.equal(timeline.calories, 400);
 });

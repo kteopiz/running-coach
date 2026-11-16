@@ -95,7 +95,7 @@ export default function Dashboard({ user, onNavigate }) {
           </div> : null}
         </> : null}
       </section>
-      <WeekSummary user={user} weeklyMiles={activity ? activity.weeklyMiles : null} />
+      <WeekSummary user={user} weeklyMiles={activity ? activity.weeklyMiles : null} runs={activity?.runs || []} />
       <section className="panel calorie-panel" aria-labelledby="calorie-heading">
         <h2 id="calorie-heading">Daily calorie estimate</h2>
         {calorieEstimate ? <>

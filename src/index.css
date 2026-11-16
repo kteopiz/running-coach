@@ -202,6 +202,11 @@ main:not(.page) h1 { font-size: 36px; }
 .week-groups h4 { margin: 0 0 6px; }
 .week-groups ul { margin: 4px 0 10px; padding-left: 18px; }
 .week-groups li { overflow-wrap: anywhere; }
+.timeline-date { display: grid; gap: 6px; max-width: 220px; margin: 8px 0 12px; }
+.day-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.day-timeline li { display: flex; gap: 12px; min-width: 0; }
+.day-timeline time { min-width: 64px; color: var(--muted); }
+.day-timeline span { overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   button { min-height: 44px; }
 }

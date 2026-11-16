@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { localDate } from "../lib/runValidation";
 import { getCalorieGoals, getMeals } from "../lib/userStore";
-import { groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../lib/summary";
+import { dailyTimeline, groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../lib/summary";
 
 const PERIOD_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snacks" };
 
@@ -24,7 +25,8 @@ function calorieLine(result) {
   return `${sign}${Math.abs(result.difference).toLocaleString()} cal ${word} the ${result.target.toLocaleString()} cal target (${result.consumed.toLocaleString()} cal logged).`;
 }
 
-export default function WeekSummary({ user, weeklyMiles }) {
+export default function WeekSummary({ user, weeklyMiles, runs = [] }) {
+  const [day, setDay] = useState(localDate);
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -47,6 +49,7 @@ export default function WeekSummary({ user, weeklyMiles }) {
   const runs = runGoalDifference({ completedMiles: weeklyMiles ?? 0, weeklyGoal: user.weeklyMileageGoal });
   const calories = weeklyCalorieDifference({ meals, goals, dailyGoal: user.dailyCalorieGoal });
   const grouped = groupMealsByDay({ meals });
+  const timeline = dailyTimeline({ runs, meals, date: day });
 
   return (
     <section className="panel week-summary" aria-labelledby="week-summary-heading">
@@ -76,6 +79,23 @@ export default function WeekSummary({ user, weeklyMiles }) {
               </section>
             ))}
           </div>
+        </>
+      )}
+      <h3>Day timeline</h3>
+      <label className="timeline-date">Day
+        <input type="date" value={day} max={localDate()} onChange={(event) => setDay(event.target.value)} />
+      </label>
+      {!loaded ? <p className="muted">Loading this day’s meals…</p> : timeline.items.length === 0 ? <p className="muted">No runs or meals on this day.</p> : (
+        <>
+          <ol className="day-timeline">
+            {timeline.items.map((item) => (
+              <li key={item.id}>
+                <time dateTime={item.time || undefined}>{item.time || "No time"}</time>
+                <span>{item.type === "run" ? `${item.label} · ${item.miles} mi` : `${item.label} · ${item.calories.toLocaleString()} cal`}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="muted">{timeline.miles} mi · {timeline.calories.toLocaleString()} cal</p>
         </>
       )}
     </section>
