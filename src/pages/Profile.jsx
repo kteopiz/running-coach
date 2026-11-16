@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CALORIE_ESTIMATE_NOTE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
 import { localDate } from "../lib/runValidation";
 import { MEASUREMENT_MIN, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { formatCalories } from "../lib/format";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -123,7 +124,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <span className="error">{errors.weeklyMileageGoal}</span>
           ) : null}
         </label>
-        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {calorieEstimate.calories.toLocaleString()} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">Enter a weekly mileage goal to see the educational calorie estimate.</p>}
+        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">Enter a weekly mileage goal to see the educational calorie estimate.</p>}
 
         <label className="weekly-goal-field">
           Daily calorie goal (calories)
@@ -218,7 +219,7 @@ function CalorieGoals() {
         Goal on this date
         <input type="date" value={lookupDate} onChange={(event) => setLookupDate(event.target.value)} />
       </label>
-      <p className="muted">{onDate ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}.` : "No calorie goal was set on or before this date."}</p>
+      <p className="muted">{onDate ? `${formatCalories(onDate.calories)} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}.` : "No calorie goal was set on or before this date."}</p>
       {loadError ? <p className="error" role="alert">{loadError}</p> : null}
       {goals.length === 0 ? <p className="muted">No calorie goals yet.</p> : (
         <ul className="goal-history">
@@ -226,7 +227,7 @@ function CalorieGoals() {
             <li key={goal.id}>
               <time dateTime={goal.effectiveDate}>{formatDay(goal.effectiveDate)}</time>
               <span>Age {goal.age}</span>
-              <strong>{goal.calories.toLocaleString()} cal</strong>
+              <strong>{formatCalories(goal.calories)} cal</strong>
             </li>
           ))}
         </ul>

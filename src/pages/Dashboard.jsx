@@ -3,16 +3,11 @@ import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
 import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
+import { formatCalories, formatMiles } from "../lib/format";
 
 import AppShell from "../components/AppShell";
 import MealLog from "../components/MealLog";
 import RunHistory from "../components/RunHistory";
-
-function formatMiles(value) {
-  if (Number(value) > 0 && Number(value) < 0.1) return "<0.1";
-  const rounded = Math.round(Number(value) * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-}
 
 export default function Dashboard({ user, onNavigate }) {
   const hasGoal =
@@ -74,7 +69,7 @@ export default function Dashboard({ user, onNavigate }) {
         </div>
         <div className="metrics">
           <div><p className="metric-label">Completed</p><p className="metric-value">{!loadingActivity && progress ? formatMiles(progress.completedMiles) : "—"}<span> mi</span></p></div>
-          <div><p className="metric-label">Weekly goal</p><p className="metric-value">{hasGoal ? Number(user.weeklyMileageGoal) : "—"}<span> mi</span></p></div>
+          <div><p className="metric-label">Weekly goal</p><p className="metric-value">{hasGoal ? formatMiles(user.weeklyMileageGoal) : "—"}<span> mi</span></p></div>
           <div><p className="metric-label">Remaining</p><p className="metric-value">{!loadingActivity && progress?.remainingMiles != null ? formatMiles(progress.remainingMiles) : "—"}<span> mi</span></p></div>
         </div>
         {loadingActivity ? <p className="muted" role="status">Loading this week’s progress…</p> : null}
@@ -97,7 +92,7 @@ export default function Dashboard({ user, onNavigate }) {
         <h2 id="calorie-heading">Daily calorie estimate</h2>
         {calorieEstimate ? <>
           <p className="metric-label">{calorieEstimate.label}</p>
-          <p className="metric-value">{calorieEstimate.calories.toLocaleString()}<span> cal</span></p>
+          <p className="metric-value">{formatCalories(calorieEstimate.calories)}<span> cal</span></p>
           <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
         </> : <p className="muted">Set a weekly mileage goal to calculate an educational daily calorie estimate.</p>}
       </section>

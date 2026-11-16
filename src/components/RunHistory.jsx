@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createRun, updateRun, deleteRun } from "../lib/userStore";
 import { localDate, localTime, validateRunFields } from "../lib/runValidation";
 import { sortRuns } from "../lib/runSort";
+import { formatMiles } from "../lib/format";
 
 const SORTS = [
   ["newest", "Newest first"],
@@ -22,7 +23,7 @@ function formatClock(value) {
 function runLabel(run) {
   const date = new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   const miles = Number(run.distanceMiles) === 1 ? "mile" : "miles";
-  return `${date} at ${formatClock(run.startTime)}, ${run.distanceMiles} ${miles}`;
+  return `${date} at ${formatClock(run.startTime)}, ${formatMiles(run.distanceMiles)} ${miles}`;
 }
 
 export default function RunHistory({ runs, loading, error, onRefresh }) {
@@ -75,7 +76,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
           {ordered.map(run => (
             <li className="run-row" key={run.id}>
               <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
-              <div className="run-stat"><strong>{run.distanceMiles}<span> mi</span></strong><span className="muted">Distance</span></div>
+              <div className="run-stat"><strong>{formatMiles(run.distanceMiles)}<span> mi</span></strong><span className="muted">Distance</span></div>
               <div className="run-stat"><strong>{run.durationMinutes ?? "—"}<span>{run.durationMinutes == null ? "" : " min"}</span></strong><span className="muted">{run.durationMinutes == null ? "Not recorded" : "Duration"}</span></div>
               {run.notes ? <p className="run-notes">{run.notes}</p> : null}
               <div className="row-actions">
