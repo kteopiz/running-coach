@@ -6,7 +6,7 @@ function weekday(date) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" });
 }
 
-export default function CalorieChart() {
+export default function CalorieChart({ refreshKey = 0 }) {
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -24,7 +24,7 @@ export default function CalorieChart() {
       setLoaded(true);
     });
     return () => { active = false; };
-  }, []);
+  }, [refreshKey]);
 
   const chart = calorieChartDays({ meals, goals });
   const scale = chartScale(chart.rows);

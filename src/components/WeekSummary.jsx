@@ -25,7 +25,7 @@ function calorieLine(result) {
   return `${sign}${Math.abs(result.difference).toLocaleString()} cal ${word} the ${result.target.toLocaleString()} cal target (${result.consumed.toLocaleString()} cal logged).`;
 }
 
-export default function WeekSummary({ user, weeklyMiles, runs = [] }) {
+export default function WeekSummary({ user, weeklyMiles, runs = [], refreshKey = 0 }) {
   const [day, setDay] = useState(localDate);
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -44,7 +44,7 @@ export default function WeekSummary({ user, weeklyMiles, runs = [] }) {
       setLoaded(true);
     });
     return () => { active = false; };
-  }, []);
+  }, [refreshKey]);
 
   const running = runGoalDifference({ completedMiles: weeklyMiles ?? 0, weeklyGoal: user.weeklyMileageGoal });
   const calories = weeklyCalorieDifference({ meals, goals, dailyGoal: user.dailyCalorieGoal });

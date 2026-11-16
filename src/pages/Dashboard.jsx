@@ -22,6 +22,7 @@ export default function Dashboard({ user, onNavigate }) {
     user.weeklyMileageGoal !== undefined &&
     Number(user.weeklyMileageGoal) > 0;
   const [revision, setRevision] = useState(0);
+  const [nutritionRevision, setNutritionRevision] = useState(0);
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState("");
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -95,7 +96,7 @@ export default function Dashboard({ user, onNavigate }) {
           </div> : null}
         </> : null}
       </section>
-      <WeekSummary user={user} weeklyMiles={activity ? activity.weeklyMiles : null} runs={activity?.runs || []} />
+      <WeekSummary user={user} weeklyMiles={activity ? activity.weeklyMiles : null} runs={activity?.runs || []} refreshKey={nutritionRevision} />
       <section className="panel calorie-panel" aria-labelledby="calorie-heading">
         <h2 id="calorie-heading">Daily calorie estimate</h2>
         {calorieEstimate ? <>
@@ -104,8 +105,8 @@ export default function Dashboard({ user, onNavigate }) {
           <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
         </> : <p className="muted">{Number(user.weeklyMileageGoal) > 0 ? CALORIE_ESTIMATE_UNAVAILABLE : "Set a weekly mileage goal to calculate an educational daily calorie estimate."}</p>}
       </section>
-      <CalorieChart />
-      <MealLog user={user} onNavigate={onNavigate} />
+      <CalorieChart refreshKey={nutritionRevision} />
+      <MealLog user={user} onNavigate={onNavigate} onChange={() => setNutritionRevision((value) => value + 1)} />
       <div className="dashboard-grid">
         <RunHistory runs={activity?.runs || []} loading={loadingActivity}
           error={activityError} onRefresh={() => setRevision(value => value + 1)} />

@@ -17,7 +17,7 @@ function kindLabel(kind) {
   return MEAL_KINDS.find(([value]) => value === kind)?.[1] || kind;
 }
 
-export default function MealLog({ user, onNavigate }) {
+export default function MealLog({ user, onNavigate, onChange }) {
   const [selectedDate, setSelectedDate] = useState(localDate());
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,7 @@ export default function MealLog({ user, onNavigate }) {
     if (!result.ok) return setActionError(result.error);
     setMessage("Meal deleted.");
     setRevision((value) => value + 1);
+    onChange?.();
   }
 
   function handleSaved(meal) {
@@ -74,6 +75,7 @@ export default function MealLog({ user, onNavigate }) {
     setEditing(null);
     setSelectedDate(meal.date);
     setRevision((value) => value + 1);
+    onChange?.();
   }
 
   return (
