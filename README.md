@@ -218,7 +218,7 @@ Sprint 3 / TS-05 section above for current verification status.
 
 Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
 
-`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Saving a changed profile target records today’s goal atomically with the profile, and clearing records a null goal so older goals do not reappear.
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Measurements & goals is the single editing control; saving a changed target records today’s goal atomically with the profile, and clearing records a null goal so older goals do not reappear. Previous goal settings are listed in the collapsed history section below the field.
 
 ### Meal API
 
