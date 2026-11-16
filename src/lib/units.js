@@ -1,0 +1,158 @@
+export const CM_PER_INCH = 2.54;
+export const KM_PER_MILE = 1.609344;
+export const INCHES_PER_FOOT = 12;
+
+function roundPlaces(value, places) {
+  const factor = 10 ** places;
+  return Math.round(Number(value) * factor) / factor;
+}
+
+function trimNumber(value, places) {
+  return value.toFixed(places).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+}
+
+export function normalizeUnitSystem(value) {
+  return value === "metric" ? "metric" : "imperial";
+}
+
+export function parseUnitSystem(value) {
+  if (value === "imperial" || value === "metric") return { unitSystem: value };
+  return { error: "Choose imperial or metric units." };
+}
+
+export function inchesToCentimeters(inches) {
+  return roundPlaces(Number(inches) * CM_PER_INCH, 1);
+}
+
+export function centimetersToInches(centimeters) {
+  return roundPlaces(Number(centimeters) / CM_PER_INCH, 1);
+}
+
+export function milesToKilometers(miles) {
+  return roundPlaces(Number(miles) * KM_PER_MILE, 2);
+}
+
+export function kilometersToMiles(kilometers) {
+  return roundPlaces(Number(kilometers) / KM_PER_MILE, 2);
+}
+
+export function heightFieldsFromInches(inches, unitSystem) {
+  const total = roundPlaces(inches, 1);
+  if (normalizeUnitSystem(unitSystem) === "metric") {
+    return { centimeters: String(inchesToCentimeters(total)), feet: "", inches: "" };
+  }
+  let feet = Math.floor(total / INCHES_PER_FOOT);
+  let inchPart = roundPlaces(total - feet * INCHES_PER_FOOT, 1);
+  if (inchPart >= INCHES_PER_FOOT) {
+    feet += 1;
+    inchPart = 0;
+  }
+  return { feet: String(feet), inches: String(inchPart), centimeters: "" };
+}
+
+export function inchesFromHeightEntry({ unitSystem, centimeters, feet, inches }) {
+  if (normalizeUnitSystem(unitSystem) === "metric") {
+    if (centimeters == null || String(centimeters).trim() === "") return { error: "Enter a height in centimeters." };
+    const cm = Number(centimeters);
+    if (!Number.isFinite(cm) || cm <= 0) return { error: "Enter a height in centimeters." };
+    const total = centimetersToInches(cm);
+    if (total < 1) return { error: "Height must be at least 2.5 cm." };
+    return { inches: total };
+  }
+  if (feet == null || String(feet).trim() === "" || inches == null || String(inches).trim() === "") {
+    return { error: "Enter height in feet and inches." };
+  }
+  const feetNum = Number(feet);
+  const inchNum = Number(inches);
+  if (!Number.isInteger(feetNum) || feetNum < 0) return { error: "Feet must be a whole number of at least 0." };
+  if (!Number.isFinite(inchNum) || inchNum < 0 || inchNum >= INCHES_PER_FOOT) {
+    return { error: "Inches must be at least 0 and less than 12." };
+  }
+  const total = roundPlaces(feetNum * INCHES_PER_FOOT + inchNum, 1);
+  if (total < 1) return { error: "Height must be at least 1 inch." };
+  return { inches: total };
+}
+
+export function heightEntryIsBlank({ unitSystem, centimeters, feet, inches }) {
+  if (normalizeUnitSystem(unitSystem) === "metric") return centimeters == null || String(centimeters).trim() === "";
+  return (feet == null || String(feet).trim() === "") && (inches == null || String(inches).trim() === "");
+}
+
+export function convertHeightEntry(entry, nextUnit) {
+  if (heightEntryIsBlank(entry)) return { centimeters: "", feet: "", inches: "" };
+  const parsed = inchesFromHeightEntry(entry);
+  if (parsed.error) return parsed;
+  return { ...heightFieldsFromInches(parsed.inches, nextUnit), inchesTotal: parsed.inches };
+}
+
+export function formatHeight(inches, unitSystem) {
+  const fields = heightFieldsFromInches(inches, unitSystem);
+  if (normalizeUnitSystem(unitSystem) === "metric") return `${fields.centimeters} cm`;
+  return `${fields.feet} ft ${fields.inches} in`;
+}
+
+export function distanceInputValue(miles, unitSystem) {
+  if (miles == null || miles === "") return "";
+  const shown = normalizeUnitSystem(unitSystem) === "metric" ? milesToKilometers(miles) : roundPlaces(miles, 2);
+  return trimNumber(shown, normalizeUnitSystem(unitSystem) === "metric" ? 2 : 2);
+}
+
+export function milesFromDistanceEntry(value, unitSystem) {
+  const metric = normalizeUnitSystem(unitSystem) === "metric";
+  if (value == null || String(value).trim() === "") {
+    return { error: metric ? "Enter a distance in kilometers." : "Enter a distance in miles." };
+  }
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return { error: "Distance must be a positive number." };
+  if (!metric) return { miles: number };
+  const miles = kilometersToMiles(number);
+  if (!(miles > 0)) return { error: "Distance must be a positive number." };
+  return { miles };
+}
+
+export function convertDistanceEntry(value, fromUnit, toUnit) {
+  if (value == null || String(value).trim() === "") return { value: "" };
+  const parsed = milesFromDistanceEntry(value, fromUnit);
+  if (parsed.error) return parsed;
+  return { value: distanceInputValue(parsed.miles, toUnit), miles: parsed.miles };
+}
+
+export function formatDistanceAmount(miles, unitSystem) {
+  const value = Number(miles);
+  if (normalizeUnitSystem(unitSystem) === "metric") {
+    const km = milesToKilometers(value);
+    if (value > 0 && km < 0.01) return "<0.01";
+    return trimNumber(km, 2);
+  }
+  if (value > 0 && value < 0.1) return "<0.1";
+  return trimNumber(Math.round(value * 10) / 10, 1);
+}
+
+export function distanceUnitShort(unitSystem) {
+  return normalizeUnitSystem(unitSystem) === "metric" ? "km" : "mi";
+}
+
+export function distanceUnitName(unitSystem) {
+  return normalizeUnitSystem(unitSystem) === "metric" ? "km" : "miles";
+}
+
+export function distanceHeading(unitSystem) {
+  return normalizeUnitSystem(unitSystem) === "metric" ? "Kilometers" : "Miles";
+}
+
+export function distanceFieldLabel(unitSystem) {
+  return normalizeUnitSystem(unitSystem) === "metric" ? "Distance (km)" : "Distance (miles)";
+}
+
+export function weeklyGoalLabel(unitSystem) {
+  return normalizeUnitSystem(unitSystem) === "metric" ? "Weekly mileage goal (km)" : "Weekly mileage goal (miles)";
+}
+
+export function recommendationText(recommendation, unitSystem) {
+  if (!recommendation?.message || normalizeUnitSystem(unitSystem) !== "metric") return recommendation?.message || "";
+  let message = recommendation.message.replace("0.1 miles", `${milesToKilometers(0.1)} km`);
+  if (recommendation.todayMiles) {
+    message = message.replace(String(recommendation.todayMiles), formatDistanceAmount(recommendation.todayMiles, "metric"));
+  }
+  return message.replaceAll("miles", "km").replaceAll("mile", "km");
+}

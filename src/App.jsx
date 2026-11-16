@@ -1,4 +1,5 @@
 import ThemeToggle from "./components/ThemeToggle";
+import UnitSystemField from "./components/UnitSystemField";
 import { useEffect, useState } from "react";
 import {
   authenticateUser,
@@ -113,6 +114,7 @@ export default function App() {
 function SignUp({ onBack, onSuccess }) {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [unitSystem, setUnitSystem] = useState("imperial");
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -128,6 +130,7 @@ function SignUp({ onBack, onSuccess }) {
       age: form.get("age"),
       height: form.get("height"),
       weight: form.get("weight"),
+      unitSystem,
     });
     setPending(false);
 
@@ -156,6 +159,7 @@ function SignUp({ onBack, onSuccess }) {
           Password
           <input name="password" type="password" required />
         </label>
+        <UnitSystemField value={unitSystem} onChange={setUnitSystem} disabled={pending} />
         <label>
           Age
           <input name="age" type="number" min="1" required />

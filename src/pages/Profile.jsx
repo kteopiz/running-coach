@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { MEASUREMENT_MIN, getCalorieGoals, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 import { formatCalories } from "../lib/format";
+import UnitSystemField from "../components/UnitSystemField";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
+  const [unitSystem, setUnitSystem] = useState(user.unitSystem === "metric" ? "metric" : "imperial");
   const [age, setAge] = useState(String(user.age ?? ""));
   const [height, setHeight] = useState(String(user.height ?? ""));
   const [weight, setWeight] = useState(String(user.weight ?? ""));
@@ -47,6 +49,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       weight: Number(weight),
       weeklyMileageGoal: Number(weeklyMileageGoal),
       dailyCalorieGoal: dailyCalorieGoal === "" ? null : Number(dailyCalorieGoal),
+      unitSystem,
     });
     setPending(false);
 
@@ -68,6 +71,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       <section className="panel">
       <h2>Measurements & goals</h2><p className="muted section-description">Keep your profile current, set a distance to work toward, and set a daily calorie goal.</p>
       <form onSubmit={handleSubmit} noValidate>
+        <UnitSystemField value={unitSystem} onChange={setUnitSystem} disabled={pending} />
         <label>
           Age
           <input
