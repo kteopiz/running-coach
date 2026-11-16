@@ -1,6 +1,6 @@
 import AppShell from "../components/AppShell";
 import { useEffect, useState } from "react";
-import { CALORIE_ESTIMATE_NOTE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
 import { localDate } from "../lib/runValidation";
 import { INPUT_LIMITS, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
@@ -127,7 +127,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <span className="error">{errors.weeklyMileageGoal}</span>
           ) : null}
         </label>
-        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {calorieEstimate.calories.toLocaleString()} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">Enter a weekly mileage goal to see the educational calorie estimate.</p>}
+        {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {calorieEstimate.calories.toLocaleString()} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyMileageGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : CALORIE_ESTIMATE_UNAVAILABLE}</p>}
 
         <label className="weekly-goal-field">
           Daily calorie goal (calories)

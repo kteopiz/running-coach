@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
-import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
@@ -99,7 +99,7 @@ export default function Dashboard({ user, onNavigate }) {
           <p className="metric-label">{calorieEstimate.label}</p>
           <p className="metric-value">{calorieEstimate.calories.toLocaleString()}<span> cal</span></p>
           <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
-        </> : <p className="muted">Set a weekly mileage goal to calculate an educational daily calorie estimate.</p>}
+        </> : <p className="muted">{Number(user.weeklyMileageGoal) > 0 ? CALORIE_ESTIMATE_UNAVAILABLE : "Set a weekly mileage goal to calculate an educational daily calorie estimate."}</p>}
       </section>
       <MealLog user={user} onNavigate={onNavigate} />
       <div className="dashboard-grid">
