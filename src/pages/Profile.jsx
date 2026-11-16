@@ -238,7 +238,7 @@ function CalorieGoals() {
         <input type="date" value={lookupDate} onChange={(event) => setLookupDate(event.target.value)} />
       </label>
       <p className="muted">{onDate
-        ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}. ${onDate.effectiveDate > today ? "This goal is not yet active." : "This goal is active on the selected date."}`
+        ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}. This goal is active on the selected date.`
         : upcoming
           ? `No calorie goal applies yet. A goal of ${upcoming.calories.toLocaleString()} cal starts on ${formatDay(upcoming.effectiveDate)} and stays inactive until then.`
           : "No calorie goal was set on or before this date."}</p>
