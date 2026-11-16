@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { recommendToday } from "../src/lib/recommendation.js";
+import { daysLeftInWeek, recommendToday } from "../src/lib/recommendation.js";
 
 const sunday = "2026-11-15";
 
@@ -34,6 +34,17 @@ test("a goal held by the daily safety cap names 6 miles rather than the 25% allo
   assert.match(result.message, /capped at 6 miles/);
   assert.match(result.message, /less than 25% of your 40-mile week/);
   assert.match(result.message, /would be 40 miles today/);
+});
+
+test("a 15-mile Sunday suggestion names the 25% allocation instead of an even split", () => {
+  assert.equal(daysLeftInWeek(sunday), 1);
+  const result = recommendToday({ completedMiles: 0, goalMiles: 15, today: sunday });
+  assert.equal(result.daysLeft, 1);
+  assert.equal(result.todayMiles, 3.7);
+  assert.equal(result.rule, "weekly-allocation");
+  assert.match(result.message, /25% of your 15-mile week/);
+  assert.match(result.message, /would be 15 miles today/);
+  assert.doesNotMatch(result.message, /less than an even split/);
 });
 
 test("a run already logged today halves the capped suggestion and still names the rule", () => {
