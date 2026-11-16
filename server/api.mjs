@@ -3,7 +3,8 @@ import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./passwords.mjs";
 import { validateAccountFields, validateMeasurements, validateName, validateProfileFields } from "../src/lib/validation.js";
 
-import { localDate, validateRunFields } from "../src/lib/runValidation.js";
+import { validateRunFields } from "../src/lib/runValidation.js";
+import { weekBounds } from "../src/lib/week.js";
 import { validateCalorieGoal } from "../src/lib/calories.js";
 import { validateMealFields } from "../src/lib/meals.js";
 
@@ -218,11 +219,10 @@ export function createApi(db) {
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, meal });
       }
       const today = new Date();
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - (today.getDay() + 6) % 7);
+      const { startDate, todayDate } = weekBounds(today);
       const runs = db.prepare(`${RUN_COLUMNS} WHERE user_id = ? ORDER BY run_date DESC, start_time DESC, id DESC`).all(user.id);
       const { total } = db.prepare("SELECT COALESCE(SUM(distance_miles), 0) AS total FROM runs WHERE user_id = ? AND run_date >= ? AND run_date <= ?")
-        .get(user.id, localDate(monday), localDate(today));
+        .get(user.id, startDate, todayDate);
       return respond(res, 200, { ok: true, runs, weeklyMiles: total });
     } catch (error) {
       if (!error.status) console.error(error);

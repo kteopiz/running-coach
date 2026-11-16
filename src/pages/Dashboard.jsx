@@ -7,6 +7,7 @@ import { recommendToday } from "../lib/recommendation";
 import AppShell from "../components/AppShell";
 import CalorieChart from "../components/CalorieChart";
 import MealLog from "../components/MealLog";
+import WeekSummary from "../components/WeekSummary";
 import RunHistory from "../components/RunHistory";
 
 function formatMiles(value) {
@@ -94,6 +95,7 @@ export default function Dashboard({ user, onNavigate }) {
           </div> : null}
         </> : null}
       </section>
+      <WeekSummary user={user} weeklyMiles={activity ? activity.weeklyMiles : null} />
       <section className="panel calorie-panel" aria-labelledby="calorie-heading">
         <h2 id="calorie-heading">Daily calorie estimate</h2>
         {calorieEstimate ? <>
