@@ -2,7 +2,7 @@ import AppShell from "../components/AppShell";
 import { useEffect, useState } from "react";
 import { CALORIE_ESTIMATE_NOTE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
 import { localDate } from "../lib/runValidation";
-import { MEASUREMENT_MIN, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { INPUT_LIMITS, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -50,7 +50,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     setPending(false);
 
     if (!result.ok) {
-      setErrors({ form: result.error });
+      setErrors(result.errors || { form: result.error });
       return;
     }
 
@@ -71,7 +71,8 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           <input
             name="age"
             type="number"
-            min="1"
+            min={INPUT_LIMITS.minAge}
+            max={INPUT_LIMITS.maxAge}
             step="1"
             value={age}
             onChange={(event) => setAge(event.target.value)}
@@ -85,7 +86,8 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           <input
             name="height"
             type="number"
-            min={MEASUREMENT_MIN}
+            min={INPUT_LIMITS.minHeightInches}
+            max={INPUT_LIMITS.maxHeightInches}
             step="0.1"
             value={height}
             onChange={(event) => setHeight(event.target.value)}
@@ -99,7 +101,8 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           <input
             name="weight"
             type="number"
-            min={MEASUREMENT_MIN}
+            min={INPUT_LIMITS.minWeightLb}
+            max={INPUT_LIMITS.maxWeightLb}
             step="0.1"
             value={weight}
             onChange={(event) => setWeight(event.target.value)}
@@ -113,7 +116,8 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           <input
             name="weeklyMileageGoal"
             type="number"
-            min="0.1"
+            min={INPUT_LIMITS.minWeeklyMiles}
+            max={INPUT_LIMITS.maxWeeklyMiles}
             step="0.1"
             value={weeklyMileageGoal}
             onChange={(event) => setWeeklyMileageGoal(event.target.value)}

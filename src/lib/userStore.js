@@ -1,4 +1,4 @@
-export { MEASUREMENT_MIN, validateProfileFields } from "./validation";
+export { INPUT_LIMITS, MEASUREMENT_MIN, validateName, validateProfileFields } from "./validation";
 
 async function request(path, method = "GET", body) {
   try {

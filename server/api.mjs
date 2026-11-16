@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./passwords.mjs";
-import { validateAccountFields, validateMeasurements, validateProfileFields } from "../src/lib/validation.js";
+import { validateAccountFields, validateMeasurements, validateName, validateProfileFields } from "../src/lib/validation.js";
 
 import { localDate, validateRunFields } from "../src/lib/runValidation.js";
 import { validateCalorieGoal } from "../src/lib/calories.js";
@@ -73,8 +73,9 @@ export function createApi(db) {
       }
       if (route === "POST /api/register") {
         const body = await readBody(req);
-        const name = typeof body.name === "string" ? body.name.trim() : "";
-        if (!name) fail("Full name is required.");
+        const nameError = validateName(body.name);
+        if (nameError) fail(nameError);
+        const name = body.name.trim();
         const accountError = validateAccountFields({ ...body, confirmPassword: body.password }, true);
         if (accountError) fail(accountError);
         const errors = validateMeasurements(body);
@@ -120,7 +121,7 @@ export function createApi(db) {
       if (route === "PATCH /api/profile") {
         const body = await readBody(req);
         const errors = validateProfileFields(body);
-        if (Object.keys(errors).length) fail(Object.values(errors)[0]);
+        if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
         const dailyCalorieGoal = body.dailyCalorieGoal == null || body.dailyCalorieGoal === "" ? null : Number(body.dailyCalorieGoal);
         db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ? WHERE id = ?")
           .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, user.id);

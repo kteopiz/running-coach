@@ -57,10 +57,10 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | name | TEXT, required | Nonblank display name |
 | email | TEXT, required, unique | Case-insensitive account email |
 | password_hash | TEXT, required | Salted scrypt password hash; never sent to the UI |
-| age | INTEGER, required | Age, at least 1 |
-| height_inches | REAL, required | Height in inches, at least 1 |
-| weight_lb | REAL, required | Weight in pounds, at least 1 |
-| weekly_mileage_goal | REAL, optional | Positive weekly mileage goal; NULL means unset |
+| age | INTEGER, required | Age, a whole number from 10 to 100 |
+| height_inches | REAL, required | Height in inches, from 36 to 96 |
+| weight_lb | REAL, required | Weight in pounds, from 50 to 400 |
+| weekly_mileage_goal | REAL, optional | Weekly mileage goal from 0.1 to 100 miles; NULL means unset |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
 ### runs
@@ -70,9 +70,9 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | id | INTEGER, primary key | Run identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their runs |
 | run_date | TEXT, required | Calendar date in YYYY-MM-DD format |
-| distance_miles | REAL, required | Positive distance in miles |
+| distance_miles | REAL, required | Distance from 0.1 to 100 miles |
 | duration_minutes | REAL, nullable for legacy records | Positive duration in minutes; required when creating or editing through the API |
-| notes | TEXT | Description; defaults to an empty string |
+| notes | TEXT | Description, at most 500 characters; defaults to an empty string |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
 Runs are indexed by owner and date. The dashboard shows all of the signed-in
