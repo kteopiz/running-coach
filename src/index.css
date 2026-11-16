@@ -78,7 +78,7 @@ p { font-size: 14px; line-height: 1.6; }
 .metrics > div { padding-left: 28px; border-left: 1px solid var(--border); }
 .metrics > div:first-child { padding-left: 0; border: 0; }
 .metric-label { color: var(--muted); font-size: 13px; margin-bottom: 5px; }
-.metric-value { font-size: 40px; font-weight: 650; line-height: 1.2; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+.metric-value { font-size: 40px; font-weight: 650; line-height: 1.2; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .metric-value span { color: var(--muted); font-size: 16px; font-weight: 400; letter-spacing: 0; }
 .metrics > div:first-child .metric-value { color: var(--accent); }
 .progress-track { height: 7px; border-radius: 8px; background: var(--track); overflow: hidden; }
@@ -94,7 +94,7 @@ p { font-size: 14px; line-height: 1.6; }
 .goal-history span { color: var(--muted); }
 .calorie-goals { margin-top: 22px; }
 .recommendation { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-.recommendation-miles { margin-top: 4px; font-size: 28px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.recommendation-miles { margin-top: 4px; font-size: 28px; font-weight: 650; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .recommendation-miles span { color: var(--muted); font-size: 14px; font-weight: 400; letter-spacing: 0; }
 .recommendation .muted { margin-top: 6px; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr); gap: 22px; margin-top: 22px; align-items: start; }
@@ -111,7 +111,7 @@ p { font-size: 14px; line-height: 1.6; }
 .run-date .muted, .run-stat .muted { font-size: 11px; font-weight: 400; }
 .run-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; background: var(--accent-soft); color: var(--accent); border-radius: 50%; font-size: 21px; }
 .run-notes { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
-.run-stat strong { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.run-stat strong { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .run-stat strong span { font-size: 11px; font-weight: 400; color: var(--muted); }
 .row-actions { display: flex; gap: 4px; }
 .row-actions button { padding: 8px; font-size: 12px; background: transparent; border-color: transparent; }
@@ -170,7 +170,9 @@ main:not(.page) h1 { font-size: 36px; }
   .date-label { display: none; }
   .dashboard-grid, .profile-grid { grid-template-columns: 1fr; gap: 16px; }
   .panel { padding: 20px; }
-  .metrics > div { padding-left: 16px; }
+  .metrics { grid-template-columns: 1fr; gap: 14px; }
+  .metrics > div { padding-left: 0; border-left: 0; }
+  .metrics > div + div { border-top: 1px solid var(--border); padding-top: 14px; }
   .metric-value { font-size: 32px; }
   .metric-value span { font-size: 13px; }
   .metric-label { font-size: 12px; }
