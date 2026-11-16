@@ -5,6 +5,7 @@ import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
 import { localDate } from "../lib/runValidation";
 import { formatCalories, formatMiles } from "../lib/format";
+import { formatHeight } from "../lib/units";
 
 import AppShell from "../components/AppShell";
 import MealLog from "../components/MealLog";
@@ -105,7 +106,7 @@ export default function Dashboard({ user, onNavigate }) {
         <aside className="panel runner-panel" aria-labelledby="runner-heading">
           <div className="section-heading"><h2 id="runner-heading">Runner profile</h2><button className="text-button" onClick={() => onNavigate("profile")}>Edit <span aria-hidden="true">↗</span></button></div>
           <div className="runner-identity"><span className="avatar" aria-hidden="true">{user.name.trim().slice(0, 1).toUpperCase()}</span><div><h3>{user.name}</h3><p className="muted">{user.email}</p></div></div>
-          <dl className="profile-facts"><div><dt>Age</dt><dd>{user.age}<span> years</span></dd></div><div><dt>Height</dt><dd>{user.height}<span> in</span></dd></div><div><dt>Weight</dt><dd>{user.weight}<span> lb</span></dd></div></dl>
+          <dl className="profile-facts"><div><dt>Age</dt><dd>{user.age}<span> years</span></dd></div><div><dt>Height</dt><dd>{formatHeight(user.height, user.unitSystem)}</dd></div><div><dt>Weight</dt><dd>{user.weight}<span> lb</span></dd></div></dl>
           <p className="panel-note">Your measurements and account details are separate from your weekly training goal.</p>
         </aside>
       </div>

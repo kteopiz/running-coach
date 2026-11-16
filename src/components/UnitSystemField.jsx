@@ -6,7 +6,7 @@ export default function UnitSystemField({ value, onChange, disabled }) {
         <option value="imperial">Imperial (ft/in and miles)</option>
         <option value="metric">Metric (cm and km)</option>
       </select>
-      <span className="account-help">Saved on your account.</span>
+      <span className="account-help">Saved on your account. Height uses feet and inches, or centimeters.</span>
     </label>
   );
 }

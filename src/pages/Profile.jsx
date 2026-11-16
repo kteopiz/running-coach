@@ -4,11 +4,16 @@ import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { MEASUREMENT_MIN, getCalorieGoals, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 import { formatCalories } from "../lib/format";
 import UnitSystemField from "../components/UnitSystemField";
+import HeightFields from "../components/HeightFields";
+import { convertHeightEntry, heightFieldsFromInches, inchesFromHeightEntry } from "../lib/units";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [unitSystem, setUnitSystem] = useState(user.unitSystem === "metric" ? "metric" : "imperial");
+  const startingHeight = heightFieldsFromInches(user.height, user.unitSystem === "metric" ? "metric" : "imperial");
+  const [feet, setFeet] = useState(startingHeight.feet);
+  const [inchPart, setInchPart] = useState(startingHeight.inches);
+  const [centimeters, setCentimeters] = useState(startingHeight.centimeters);
   const [age, setAge] = useState(String(user.age ?? ""));
-  const [height, setHeight] = useState(String(user.height ?? ""));
   const [weight, setWeight] = useState(String(user.weight ?? ""));
   const [weeklyMileageGoal, setWeeklyMileageGoal] = useState(
     user.weeklyMileageGoal !== null && user.weeklyMileageGoal !== undefined
@@ -22,20 +27,37 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const [historyRevision, setHistoryRevision] = useState(0);
   const [success, setSuccess] = useState("");
   const [pending, setPending] = useState(false);
-  const calorieEstimate = estimateDailyCalories({ age, height, weight, weeklyMileageGoal });
+  const heightEntry = { unitSystem, feet, inches: inchPart, centimeters };
+  const heightInches = inchesFromHeightEntry(heightEntry).inches;
+  const calorieEstimate = estimateDailyCalories({ age, height: heightInches, weight, weeklyMileageGoal });
+
+  function changeUnits(next) {
+    if (next === unitSystem) return;
+    const converted = convertHeightEntry(heightEntry, next);
+    if (converted.error) {
+      setErrors((current) => ({ ...current, height: converted.error }));
+      return;
+    }
+    setUnitSystem(next);
+    setFeet(converted.feet);
+    setInchPart(converted.inches);
+    setCentimeters(converted.centimeters);
+    setErrors((current) => ({ ...current, height: undefined }));
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     if (pending) return;
     setSuccess("");
-
+    const parsedHeight = inchesFromHeightEntry(heightEntry);
     const nextErrors = validateProfileFields({
       age,
-      height,
+      height: parsedHeight.inches ?? "",
       weight,
       weeklyMileageGoal,
       dailyCalorieGoal,
     });
+    if (parsedHeight.error) nextErrors.height = parsedHeight.error;
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -45,7 +67,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     setPending(true);
     const result = await updateCurrentUser({
       age: Number(age),
-      height: Number(height),
+      height: parsedHeight.inches,
       weight: Number(weight),
       weeklyMileageGoal: Number(weeklyMileageGoal),
       dailyCalorieGoal: dailyCalorieGoal === "" ? null : Number(dailyCalorieGoal),
@@ -71,7 +93,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       <section className="panel">
       <h2>Measurements & goals</h2><p className="muted section-description">Keep your profile current, set a distance to work toward, and set a daily calorie goal.</p>
       <form onSubmit={handleSubmit} noValidate>
-        <UnitSystemField value={unitSystem} onChange={setUnitSystem} disabled={pending} />
+        <UnitSystemField value={unitSystem} onChange={changeUnits} disabled={pending} />
         <label>
           Age
           <input
@@ -86,19 +108,17 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           {errors.age ? <span className="error">{errors.age}</span> : null}
         </label>
 
-        <label>
-          Height (inches)
-          <input
-            name="height"
-            type="number"
-            min={MEASUREMENT_MIN}
-            step="0.1"
-            value={height}
-            onChange={(event) => setHeight(event.target.value)}
-            aria-invalid={Boolean(errors.height)}
-          />
-          {errors.height ? <span className="error">{errors.height}</span> : null}
-        </label>
+        <HeightFields
+          unitSystem={unitSystem}
+          feet={feet}
+          inches={inchPart}
+          centimeters={centimeters}
+          onFeet={setFeet}
+          onInches={setInchPart}
+          onCentimeters={setCentimeters}
+          error={errors.height}
+          disabled={pending}
+        />
 
         <label>
           Weight (lb)
