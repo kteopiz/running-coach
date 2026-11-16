@@ -112,8 +112,9 @@ export function createApi(db) {
       }
       const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
       const mealMatch = path.match(/^\/api\/meals\/([1-9]\d*)$/);
+      const goalMatch = path.match(/^\/api\/calorie-goals\/([1-9]\d*)$/);
       const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
-      const calorieRoute = route === "GET /api/calorie-goals" || route === "POST /api/calorie-goals";
+      const calorieRoute = route === "GET /api/calorie-goals" || route === "POST /api/calorie-goals" || (goalMatch && req.method === "DELETE");
       const mealMutation = mealMatch && ["PATCH", "DELETE"].includes(req.method);
       if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation && !mealMutation && !calorieRoute) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
@@ -145,6 +146,12 @@ export function createApi(db) {
       if (calorieRoute) {
         const listGoals = () => db.prepare(`SELECT id, effective_date AS effectiveDate, calories, age
           FROM calorie_goals WHERE user_id = ? ORDER BY effective_date DESC, id DESC`).all(user.id);
+        if (req.method === "DELETE") {
+          const id = Number(goalMatch[1]);
+          if (!db.prepare("SELECT id FROM calorie_goals WHERE id = ? AND user_id = ?").get(id, user.id)) fail("Calorie goal not found.", 404);
+          db.prepare("DELETE FROM calorie_goals WHERE id = ? AND user_id = ?").run(id, user.id);
+          return respond(res, 200, { ok: true, goals: listGoals() });
+        }
         if (req.method === "GET") return respond(res, 200, { ok: true, goals: listGoals() });
         const body = await readBody(req);
         const errors = validateCalorieGoal(body);

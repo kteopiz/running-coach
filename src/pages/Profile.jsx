@@ -1,8 +1,8 @@
 import AppShell from "../components/AppShell";
 import { useEffect, useState } from "react";
-import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, calorieGoalOn, estimateDailyCalories, validateCalorieGoal } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, calorieGoalOn, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../lib/calories";
 import { localDate } from "../lib/runValidation";
-import { INPUT_LIMITS, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
+import { INPUT_LIMITS, deleteCalorieGoal, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
   const [age, setAge] = useState(String(user.age ?? ""));
@@ -169,6 +169,7 @@ function CalorieGoals() {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -177,6 +178,7 @@ function CalorieGoals() {
       if (!active) return;
       if (!result.ok) setLoadError(result.error || "Could not load calorie goals.");
       else setGoals(result.goals || []);
+      setLoaded(true);
     });
     return () => { active = false; };
   }, []);
@@ -197,12 +199,25 @@ function CalorieGoals() {
     setMessage("Calorie goal saved.");
   }
 
+  async function handleDelete(goal) {
+    if (pending || !window.confirm(`Delete the calorie goal for ${formatDay(goal.effectiveDate)}? This cannot be undone.`)) return;
+    setMessage("");
+    setPending(true);
+    const result = await deleteCalorieGoal(goal.id);
+    setPending(false);
+    if (!result.ok) return setErrors({ form: result.error });
+    setGoals(result.goals || []);
+    setMessage("Calorie goal deleted.");
+  }
+
+  const today = localDate();
   const onDate = calorieGoalOn(goals, lookupDate);
+  const upcoming = onDate ? null : upcomingCalorieGoal(goals, lookupDate);
 
   return (
     <section className="panel calorie-goals" aria-labelledby="calorie-goal-heading">
       <h2 id="calorie-goal-heading">Calorie goals</h2>
-      <p className="muted section-description">Save the calorie goal for a date. Earlier goals stay on record, including the age on your profile when you saved them.</p>
+      <p className="muted section-description">Save the calorie goal for a date. A goal stays inactive until that date, then it applies to that day and the days after it until a later goal takes over. Earlier goals stay on record, including the age on your profile when you saved them.</p>
       <form onSubmit={handleSubmit} noValidate>
         <label>
           Date this goal applies
@@ -222,19 +237,26 @@ function CalorieGoals() {
         Goal on this date
         <input type="date" value={lookupDate} onChange={(event) => setLookupDate(event.target.value)} />
       </label>
-      <p className="muted">{onDate ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}.` : "No calorie goal was set on or before this date."}</p>
+      <p className="muted">{onDate
+        ? `${onDate.calories.toLocaleString()} cal, from the goal saved on ${formatDay(onDate.effectiveDate)} at age ${onDate.age}. ${onDate.effectiveDate > today ? "This goal is not yet active." : "This goal is active on the selected date."}`
+        : upcoming
+          ? `No calorie goal applies yet. A goal of ${upcoming.calories.toLocaleString()} cal starts on ${formatDay(upcoming.effectiveDate)} and stays inactive until then.`
+          : "No calorie goal was set on or before this date."}</p>
       {loadError ? <p className="error" role="alert">{loadError}</p> : null}
-      {goals.length === 0 ? <p className="muted">No calorie goals yet.</p> : (
+      {loaded && !loadError && goals.length === 0 ? <p className="muted">No calorie goals yet.</p> : null}
+      {goals.length > 0 ? (
         <ul className="goal-history">
           {goals.map((goal) => (
             <li key={goal.id}>
               <time dateTime={goal.effectiveDate}>{formatDay(goal.effectiveDate)}</time>
+              <span>{goal.effectiveDate > today ? "Not yet active" : "Active"}</span>
               <span>Age {goal.age}</span>
               <strong>{goal.calories.toLocaleString()} cal</strong>
+              <button type="button" onClick={() => handleDelete(goal)} disabled={pending}>Delete</button>
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </section>
   );
 }

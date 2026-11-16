@@ -70,12 +70,26 @@ export function validateCalorieGoal({ effectiveDate, calories }) {
   return errors;
 }
 
+function isGoalDate(date) {
+  return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date);
+}
+
 // The goal in effect on a date is the latest entry dated on or before that day.
 export function calorieGoalOn(goals, date) {
-  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  if (!isGoalDate(date)) return null;
   let match = null;
   for (const goal of Array.isArray(goals) ? goals : []) {
     if (goal?.effectiveDate <= date && (!match || goal.effectiveDate > match.effectiveDate)) match = goal;
+  }
+  return match;
+}
+
+// The next saved goal after a date has not started yet.
+export function upcomingCalorieGoal(goals, date) {
+  if (!isGoalDate(date)) return null;
+  let match = null;
+  for (const goal of Array.isArray(goals) ? goals : []) {
+    if (goal?.effectiveDate > date && (!match || goal.effectiveDate < match.effectiveDate)) match = goal;
   }
   return match;
 }
