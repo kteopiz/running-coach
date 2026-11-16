@@ -102,15 +102,16 @@ p { font-size: 14px; line-height: 1.6; }
 .meal-date { width: 11.5rem; flex: none; }
 .meal-date input { min-height: 36px; }
 .meal-description { overflow-wrap: anywhere; }
-.run-list { list-style: none; margin: 0; padding: 0; }
-.run-row { display: grid; grid-template-columns: minmax(140px, 1.4fr) minmax(65px, .7fr) minmax(65px, .7fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--border); padding: 18px 0; }
+.run-list { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.run-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(65px, .7fr) minmax(65px, .7fr) auto; gap: 14px; align-items: center; border-top: 1px solid var(--border); padding: 18px 0; min-width: 0; }
+.run-row > * { min-width: 0; }
 .meal-row { grid-template-columns: minmax(160px, 1.8fr) repeat(3, minmax(64px, .7fr)) auto; }
 .run-row:last-child { padding-bottom: 0; }
 .run-date { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; }
 .run-date > div, .run-stat { display: flex; flex-direction: column; gap: 4px; }
 .run-date .muted, .run-stat .muted { font-size: 11px; font-weight: 400; }
 .run-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; background: var(--accent-soft); color: var(--accent); border-radius: 50%; font-size: 21px; }
-.run-notes { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+.run-notes { grid-column: 1 / -1; margin: 0; min-width: 0; color: var(--muted); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .run-stat strong { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .run-stat strong span { font-size: 11px; font-weight: 400; color: var(--muted); }
 .row-actions { display: flex; gap: 4px; }
@@ -119,6 +120,7 @@ p { font-size: 14px; line-height: 1.6; }
 .row-actions .danger-button { color: var(--danger); }
 .runner-identity { display: flex; align-items: center; gap: 12px; margin: 26px 0; }
 .runner-identity > div { min-width: 0; }
+.runner-identity h3, .page-heading .muted { overflow-wrap: anywhere; }
 .runner-identity p { overflow-wrap: anywhere; font-size: 12px; margin-top: 4px; }
 .avatar { display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border-radius: 50%; width: 44px; height: 44px; flex-shrink: 0; font-size: 18px; font-weight: 600; }
 .profile-facts { margin: 0; }
