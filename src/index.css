@@ -189,6 +189,14 @@ main:not(.page) h1 { font-size: 36px; }
   main:not(.page) { margin: 24px auto; padding: 24px; }
 }
 .weekly-goal-field { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 3px; }
+.calorie-chart-panel { margin-top: 22px; }
+.calorie-chart { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 10px; align-items: end; }
+.calorie-chart-day { min-width: 0; }
+.calorie-chart-plot { position: relative; height: 120px; border-radius: 6px; background: var(--track); display: flex; align-items: flex-end; overflow: hidden; }
+.calorie-chart-bar { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; }
+.calorie-chart-goal { position: absolute; left: 4px; right: 4px; height: 0; border-top: 2px solid var(--text); }
+.calorie-chart-label, .calorie-chart-caption { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.goal-history button { min-height: 32px; padding: 6px 10px; }
 @media (max-width: 760px) {
   button { min-height: 44px; }
 }

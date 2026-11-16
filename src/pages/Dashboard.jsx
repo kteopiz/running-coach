@@ -5,6 +5,7 @@ import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, estimateDailyCalor
 import { recommendToday } from "../lib/recommendation";
 
 import AppShell from "../components/AppShell";
+import CalorieChart from "../components/CalorieChart";
 import MealLog from "../components/MealLog";
 import RunHistory from "../components/RunHistory";
 
@@ -101,6 +102,7 @@ export default function Dashboard({ user, onNavigate }) {
           <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
         </> : <p className="muted">{Number(user.weeklyMileageGoal) > 0 ? CALORIE_ESTIMATE_UNAVAILABLE : "Set a weekly mileage goal to calculate an educational daily calorie estimate."}</p>}
       </section>
+      <CalorieChart />
       <MealLog user={user} onNavigate={onNavigate} />
       <div className="dashboard-grid">
         <RunHistory runs={activity?.runs || []} loading={loadingActivity}
