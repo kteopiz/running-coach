@@ -51,3 +51,28 @@ export function weeklyCalorieDifference({ meals = [], goals = [], dailyGoal = nu
   const status = difference > 0 ? "above" : difference < 0 ? "below" : "met";
   return { status, consumed, target, difference, startDate, todayDate };
 }
+
+const MEAL_PERIODS = ["breakfast", "lunch", "dinner", "snack"];
+
+export function groupMealsByDay({ meals = [], today = new Date() } = {}) {
+  const { startDate, todayDate } = weekBounds(today);
+  const inWeek = (Array.isArray(meals) ? meals : []).filter((meal) => meal.date >= startDate && meal.date <= todayDate);
+  const days = eachDate(startDate, todayDate).map((date) => {
+    const dayMeals = inWeek.filter((meal) => meal.date === date);
+    const periods = MEAL_PERIODS.map((kind) => {
+      const items = dayMeals.filter((meal) => meal.kind === kind);
+      return {
+        kind,
+        meals: items,
+        calories: items.reduce((sum, meal) => sum + Number(meal.calories || 0), 0),
+      };
+    }).filter((period) => period.meals.length > 0);
+    return {
+      date,
+      periods,
+      calories: dayMeals.reduce((sum, meal) => sum + Number(meal.calories || 0), 0),
+    };
+  }).filter((day) => day.periods.length > 0);
+  const total = days.reduce((sum, day) => sum + day.calories, 0);
+  return { startDate, todayDate, days, total, empty: days.length === 0 };
+}

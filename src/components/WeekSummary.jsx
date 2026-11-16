@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { getCalorieGoals, getMeals } from "../lib/userStore";
-import { runGoalDifference, weeklyCalorieDifference } from "../lib/summary";
+import { groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../lib/summary";
+
+const PERIOD_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snacks" };
+
+function formatDay(date) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
 
 function milesLine(result) {
   if (result.status === "missing") return "Set a weekly mileage goal to compare this week.";
@@ -40,6 +46,7 @@ export default function WeekSummary({ user, weeklyMiles }) {
 
   const runs = runGoalDifference({ completedMiles: weeklyMiles ?? 0, weeklyGoal: user.weeklyMileageGoal });
   const calories = weeklyCalorieDifference({ meals, goals, dailyGoal: user.dailyCalorieGoal });
+  const grouped = groupMealsByDay({ meals });
 
   return (
     <section className="panel week-summary" aria-labelledby="week-summary-heading">
@@ -48,6 +55,29 @@ export default function WeekSummary({ user, weeklyMiles }) {
       {error ? <p className="error" role="alert">{error}</p> : null}
       <p><strong>Running. </strong>{weeklyMiles == null ? "Loading this week’s miles…" : milesLine(runs)}</p>
       <p><strong>Meals. </strong>{!loaded ? "Loading this week’s meals…" : calorieLine(calories)}</p>
+      <h3>Meals by day</h3>
+      {!loaded ? null : grouped.empty ? <p className="muted">No meals this week.</p> : (
+        <>
+          <p className="muted">This week: {grouped.total.toLocaleString()} cal</p>
+          <div className="week-groups">
+            {grouped.days.map((day) => (
+              <section key={day.date} aria-label={formatDay(day.date)}>
+                <h4>{formatDay(day.date)} · {day.calories.toLocaleString()} cal</h4>
+                {day.periods.map((period) => (
+                  <div key={period.kind}>
+                    <p className="metric-label">{PERIOD_LABELS[period.kind]} · {period.calories.toLocaleString()} cal</p>
+                    <ul>
+                      {period.meals.map((meal) => (
+                        <li key={meal.id}>{meal.time} {meal.description} · {Number(meal.calories).toLocaleString()} cal</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }

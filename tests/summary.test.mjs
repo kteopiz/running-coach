@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calorieChartDays, runGoalDifference, weeklyCalorieDifference } from "../src/lib/summary.js";
+import { calorieChartDays, groupMealsByDay, runGoalDifference, weeklyCalorieDifference } from "../src/lib/summary.js";
 import { weekBounds } from "../src/lib/week.js";
 
 test("the calorie chart compares logged calories with the dated goal and skips future goals", () => {
@@ -64,4 +64,22 @@ test("run and meal differences use the weekly goal and the dated calorie target"
   assert.equal(compared.consumed, 500);
   assert.equal(compared.status, "below");
   assert.equal(weeklyCalorieDifference({ today: "2026-11-15", meals: [], goals: [] }).status, "missing");
+});
+
+test("meals group by day and period and the weekly total matches the days", () => {
+  const grouped = groupMealsByDay({
+    today: "2026-11-15",
+    meals: [
+      { id: 1, date: "2026-11-15", time: "08:30", kind: "breakfast", description: "Oats", calories: 400 },
+      { id: 2, date: "2026-11-15", time: "12:00", kind: "lunch", description: "Rice", calories: 600 },
+      { id: 3, date: "2026-11-14", time: "19:00", kind: "dinner", description: "Pasta", calories: 700 },
+      { id: 4, date: "2026-11-14", time: "21:00", kind: "snack", description: "Yogurt", calories: 150 },
+      { id: 5, date: "2026-11-08", time: "08:00", kind: "breakfast", description: "Old", calories: 900 },
+    ],
+  });
+  assert.deepEqual(grouped.days.map((day) => day.date), ["2026-11-14", "2026-11-15"]);
+  assert.deepEqual(grouped.days[1].periods.map((period) => period.kind), ["breakfast", "lunch"]);
+  assert.equal(grouped.total, grouped.days.reduce((sum, day) => sum + day.calories, 0));
+  assert.equal(grouped.total, 1850);
+  assert.equal(groupMealsByDay({ today: "2026-11-15", meals: [] }).empty, true);
 });
