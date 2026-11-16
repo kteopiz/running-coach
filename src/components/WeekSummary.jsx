@@ -46,7 +46,7 @@ export default function WeekSummary({ user, weeklyMiles, runs = [] }) {
     return () => { active = false; };
   }, []);
 
-  const runs = runGoalDifference({ completedMiles: weeklyMiles ?? 0, weeklyGoal: user.weeklyMileageGoal });
+  const running = runGoalDifference({ completedMiles: weeklyMiles ?? 0, weeklyGoal: user.weeklyMileageGoal });
   const calories = weeklyCalorieDifference({ meals, goals, dailyGoal: user.dailyCalorieGoal });
   const grouped = groupMealsByDay({ meals });
   const timeline = dailyTimeline({ runs, meals, date: day });
@@ -56,7 +56,7 @@ export default function WeekSummary({ user, weeklyMiles, runs = [] }) {
       <h2 id="week-summary-heading">Against your goals</h2>
       <p className="muted section-description">Monday through today, in miles. Meal calories use the dated goal for each day, or your daily calorie goal when no dated goal applies yet.</p>
       {error ? <p className="error" role="alert">{error}</p> : null}
-      <p><strong>Running. </strong>{weeklyMiles == null ? "Loading this week’s miles…" : milesLine(runs)}</p>
+      <p><strong>Running. </strong>{weeklyMiles == null ? "Loading this week’s miles…" : milesLine(running)}</p>
       <p><strong>Meals. </strong>{!loaded ? "Loading this week’s meals…" : calorieLine(calories)}</p>
       <h3>Meals by day</h3>
       {!loaded ? null : grouped.empty ? <p className="muted">No meals this week.</p> : (
