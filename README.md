@@ -128,8 +128,13 @@ clamped to 1–7. Only distinct run dates from Monday through today count toward
 recovery; duplicates, earlier weeks, and future dates do not count.
 
 Outputs include `todayMiles`, `remainingMiles`, `daysLeft`, `ranToday`, a `status`
-(`no-goal`, `suggested`, `reduced`, or `rest`), and an explanatory `message`.
-Missing goals return null distances; rest returns zero today miles.
+(`no-goal`, `suggested`, `reduced`, or `rest`), a `rule` (`even`,
+`weekly-allocation`, `daily-cap`, or null), and an explanatory `message`.
+Missing goals return null distances; rest returns zero today miles. The message
+names the rule that set the distance. An even split that already fits says so.
+A day held to 25% of the weekly goal says that, and a day held to 6 miles names
+the daily safety cap. A run already logged today says the shown distance is half
+of that capped suggestion.
 
 ### Rule priority and precision
 
@@ -146,7 +151,9 @@ Rules are centralized in `src/lib/recommendation.js` and applied in this order:
    suggested. If a run is already logged today, halve the bounded suggestion
    and round to tenths again.
 6. A zero suggestion means rest. A tiny positive remainder does not mean the
-   weekly goal is complete; the message distinguishes this case.
+   weekly goal is complete; the message distinguishes this case. A positive
+   suggestion names whether an even weekly allocation, the 25% allocation, or
+   the 6-mile daily safety cap set it.
 
 The API preserves weekly totals without rounding to tenths. Remaining mileage
 is `max(0, goal - completed)`, shared by weekly progress and the coach. Calculations
