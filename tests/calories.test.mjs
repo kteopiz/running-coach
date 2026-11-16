@@ -27,6 +27,14 @@ test("daily calorie estimate is a labelled educational total", () => {
   assert.ok(estimate.runningCalories > 0);
   assert.ok(estimateDailyCalories({ ...alex, weeklyMileageGoal: 30 }).runningCalories > estimate.runningCalories);
   assert.equal(estimateDailyCalories({ age: 30, height: 70, weight: 170 }), null);
+  assert.equal(estimate.calories, 1714);
+  const implausible = { age: 25, heightInches: 70, weightLb: 200, weeklyMileageGoal: 1000 };
+  assert.equal(calorieInputs(implausible), null);
+  assert.equal(estimateDailyCalories(implausible), null);
+  assert.equal(calorieInputs({ age: 1, heightInches: 1, weightLb: 1, weeklyMileageGoal: 15 }), null);
+  const upper = estimateDailyCalories({ age: 10, heightInches: 96, weightLb: 400, weeklyMileageGoal: 100 });
+  assert.ok(upper.calories < 10000);
+  assert.ok(upper.calories < 18672);
 });
 
 test("calorie goal history resolves the goal in effect on a date", () => {

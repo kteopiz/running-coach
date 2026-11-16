@@ -1,12 +1,18 @@
+import { INPUT_LIMITS } from "./validation.js";
+
 // Profile and activity inputs for the educational daily calorie estimate.
 // Age, height, and weight come from the runner profile. Weekly mileage is the running goal.
 export const CALORIE_INPUTS = {
-  minAge: 1,
-  minHeightInches: 1,
-  minWeightLb: 1,
-  minWeeklyMiles: 0,
-  minGoalCalories: 1,
-  maxGoalCalories: 10000,
+  minAge: INPUT_LIMITS.minAge,
+  maxAge: INPUT_LIMITS.maxAge,
+  minHeightInches: INPUT_LIMITS.minHeightInches,
+  maxHeightInches: INPUT_LIMITS.maxHeightInches,
+  minWeightLb: INPUT_LIMITS.minWeightLb,
+  maxWeightLb: INPUT_LIMITS.maxWeightLb,
+  minWeeklyMiles: INPUT_LIMITS.minWeeklyMiles,
+  maxWeeklyMiles: INPUT_LIMITS.maxWeeklyMiles,
+  minGoalCalories: INPUT_LIMITS.minGoalCalories,
+  maxGoalCalories: INPUT_LIMITS.maxGoalCalories,
 };
 
 const POUNDS_PER_KILOGRAM = 2.2046226218;
@@ -16,7 +22,9 @@ const RESTING_ADJUSTMENT = -78;
 const CALORIES_PER_POUND_MILE = 0.63;
 
 export const CALORIE_ESTIMATE_NOTE =
-  "Educational estimate from age, height, weight, and weekly running goal. This is not medical advice.";
+  "Educational estimate from age, height, weight, and weekly running goal. This is not a target and it is not medical advice.";
+export const CALORIE_ESTIMATE_UNAVAILABLE =
+  "Those values are outside the range this educational estimate can use. Age is 10 to 100, height is 36 to 96 inches, weight is 50 to 400 lb, and the weekly goal is 0.1 to 100 miles.";
 
 export function calorieInputs({ age, heightInches, height, weightLb, weight, weeklyMileageGoal } = {}) {
   const ageNum = Number(age);
@@ -24,10 +32,10 @@ export function calorieInputs({ age, heightInches, height, weightLb, weight, wee
   const weightNum = Number(weightLb ?? weight);
   const miles = Number(weeklyMileageGoal);
   const valid =
-    Number.isInteger(ageNum) && ageNum >= CALORIE_INPUTS.minAge &&
-    Number.isFinite(heightNum) && heightNum >= CALORIE_INPUTS.minHeightInches &&
-    Number.isFinite(weightNum) && weightNum >= CALORIE_INPUTS.minWeightLb &&
-    Number.isFinite(miles) && miles > CALORIE_INPUTS.minWeeklyMiles;
+    Number.isInteger(ageNum) && ageNum >= CALORIE_INPUTS.minAge && ageNum <= CALORIE_INPUTS.maxAge &&
+    Number.isFinite(heightNum) && heightNum >= CALORIE_INPUTS.minHeightInches && heightNum <= CALORIE_INPUTS.maxHeightInches &&
+    Number.isFinite(weightNum) && weightNum >= CALORIE_INPUTS.minWeightLb && weightNum <= CALORIE_INPUTS.maxWeightLb &&
+    Number.isFinite(miles) && miles >= CALORIE_INPUTS.minWeeklyMiles && miles <= CALORIE_INPUTS.maxWeeklyMiles;
   if (!valid) return null;
   return { age: ageNum, heightInches: heightNum, weightLb: weightNum, weeklyMileageGoal: miles };
 }
