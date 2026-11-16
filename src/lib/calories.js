@@ -67,7 +67,8 @@ export function calorieGoalOn(goals, date) {
   if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   let match = null;
   for (const goal of Array.isArray(goals) ? goals : []) {
-    if (goal?.effectiveDate <= date && (!match || goal.effectiveDate > match.effectiveDate)) match = goal;
+    if (goal?.effectiveDate <= date && (!match || goal.effectiveDate > match.effectiveDate ||
+      (goal.effectiveDate === match.effectiveDate && goal.id > match.id))) match = goal;
   }
   return match;
 }

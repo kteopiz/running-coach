@@ -218,7 +218,7 @@ Sprint 3 / TS-05 section above for current verification status.
 
 Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
 
-`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. This is one current goal, not a history of goals by date.
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Saving a changed profile target records today’s goal atomically with the profile, and clearing records a null goal so older goals do not reappear.
 
 ### Meal API
 
@@ -235,18 +235,20 @@ Validation returns 400 with field `errors`. Signed-out requests return 401. Miss
 
 ### calorie_goals
 
-Each row is one calorie goal for one runner on one date. Saving the same date again updates that row. The goal in effect on a later day is the latest row dated on or before that day. `age` is the profile age at the time the goal was saved.
+Each row records a calorie goal setting for one runner. Multiple changes on the same date are retained, newest first. The goal in effect on a later day is the latest row dated on or before that day. `age` is the profile age at the time the goal was saved.
 
 | Column | Type | Meaning |
 | --- | --- | --- |
 | id | INTEGER, primary key | Goal entry identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their goals |
-| effective_date | TEXT, required | Calendar date in YYYY-MM-DD format; unique per runner |
-| calories | INTEGER, required | Whole-number daily calorie goal from 1 to 10000 |
+| effective_date | TEXT, required | Calendar date in YYYY-MM-DD format; multiple entries per runner allowed |
+| calories | INTEGER, nullable | Whole-number daily calorie goal from 1 to 10000; null clears the goal |
 | age | INTEGER, required | Profile age saved with this goal |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-`GET /api/calorie-goals` lists the signed-in runner's goals, newest date first. `POST /api/calorie-goals` with `{ effectiveDate, calories }` adds or updates that date. The daily calorie number on the overview is a separate educational estimate. It is calculated from age, height, weight, and the weekly mileage goal. It is not stored as a calorie goal.
+A null calorie value records a cleared goal. Existing databases are migrated automatically; existing profile targets take precedence today, while older dated records are retained. Changes on the same date append entries; the latest entry on that date wins.
+
+`GET /api/calorie-goals` lists the signed-in runner's goals, newest date first. `POST /api/calorie-goals` with `{ effectiveDate, calories }` appends a setting for that date and returns the updated user along with history. Both endpoints resolve the same active goal for meal tracking; future entries take effect on their date. The daily calorie number on the overview is a separate educational estimate. It is calculated from age, height, weight, and the weekly mileage goal. It is not stored as a calorie goal.
 
 ### sessions
 

@@ -1,3 +1,4 @@
+import { localDate } from "../src/lib/runValidation.js";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -22,6 +23,20 @@ export function initializeDatabase(db, { reset = false } = {}) {
     const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
     if (!userColumns.includes("daily_calorie_goal")) {
       db.exec("ALTER TABLE users ADD COLUMN daily_calorie_goal INTEGER");
+    }
+    // Allow a dated clearing entry, and reconcile the former independent profile goal once.
+    const calorieColumns = db.prepare("PRAGMA table_info(calorie_goals)").all();
+    const legacyGoalStorage = Boolean(calorieColumns.find((column) => column.name === "calories")?.notnull);
+    const uniqueGoalDate = db.prepare("PRAGMA index_list(calorie_goals)").all().some((index) => index.origin === "u");
+    if (legacyGoalStorage || uniqueGoalDate) {
+      db.exec(`ALTER TABLE calorie_goals RENAME TO legacy_calorie_goals;
+        DROP INDEX calorie_goals_user_date;`);
+      db.exec(readFileSync(resolve(root, "db/schema.sql"), "utf8"));
+      db.exec(`INSERT INTO calorie_goals SELECT * FROM legacy_calorie_goals;
+        DROP TABLE legacy_calorie_goals;`);
+      if (legacyGoalStorage) db.prepare(`INSERT INTO calorie_goals (user_id, effective_date, calories, age)
+        SELECT id, ?, daily_calorie_goal, age FROM users WHERE daily_calorie_goal IS NOT NULL`)
+        .run(localDate());
     }
     const runColumns = db.prepare("PRAGMA table_info(runs)").all().map((column) => column.name);
     if (runColumns.length && !runColumns.includes("start_time")) {

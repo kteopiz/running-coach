@@ -43,7 +43,17 @@ async function readBody(req) {
 }
 
 export function createApi(db) {
-  const publicUser = (id) => db.prepare(`SELECT ${publicColumns} FROM users WHERE id = ?`).get(id);
+  const publicUser = (id) => {
+    const user = db.prepare(`SELECT ${publicColumns} FROM users WHERE id = ?`).get(id);
+    if (!user) return user;
+    const goal = db.prepare(`SELECT calories FROM calorie_goals
+      WHERE user_id = ? AND effective_date <= ? ORDER BY effective_date DESC, id DESC LIMIT 1`).get(id, localDate());
+    if (goal) user.dailyCalorieGoal = goal.calories;
+    return user;
+  };
+  const recordGoal = (id, date, calories, age) => db.prepare(`
+    INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (?, ?, ?, ?)
+  `).run(id, date, calories, age);
   const tokenFrom = (req) => req.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith("running_coach_session="))?.slice("running_coach_session=".length);
   const sessionUser = (req) => {
     const token = tokenFrom(req);
@@ -123,8 +133,15 @@ export function createApi(db) {
         const errors = validateProfileFields(body);
         if (Object.keys(errors).length) fail(Object.values(errors)[0]);
         const dailyCalorieGoal = body.dailyCalorieGoal == null || body.dailyCalorieGoal === "" ? null : Number(body.dailyCalorieGoal);
-        db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ? WHERE id = ?")
-          .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, user.id);
+        db.exec("BEGIN");
+        try {
+          db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ? WHERE id = ?")
+            .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, user.id);
+          if (dailyCalorieGoal !== user.dailyCalorieGoal) {
+            recordGoal(user.id, localDate(), dailyCalorieGoal, Number(body.age));
+          }
+          db.exec("COMMIT");
+        } catch (error) { db.exec("ROLLBACK"); throw error; }
         return respond(res, 200, { ok: true, user: publicUser(user.id) });
       }
       if (route === "PATCH /api/account") {
@@ -149,10 +166,8 @@ export function createApi(db) {
         const body = await readBody(req);
         const errors = validateCalorieGoal(body);
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
-        db.prepare(`INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (?, ?, ?, ?)
-          ON CONFLICT(user_id, effective_date) DO UPDATE SET calories = excluded.calories, age = excluded.age`)
-          .run(user.id, body.effectiveDate, Number(body.calories), user.age);
-        return respond(res, 200, { ok: true, goals: listGoals() });
+        recordGoal(user.id, body.effectiveDate, Number(body.calories), user.age);
+        return respond(res, 200, { ok: true, goals: listGoals(), user: publicUser(user.id) });
       }
       if (route === "POST /api/runs" || runMutation) {
         const id = runMatch ? Number(runMatch[1]) : null;

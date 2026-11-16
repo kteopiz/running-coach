@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { calorieGoalOn, calorieInputs, estimateDailyCalories, validateCalorieGoal } from "../src/lib/calories.js";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
+import { localDate } from "../src/lib/runValidation.js";
 import { createApi } from "../server/api.mjs";
 
 const alex = { age: 25, heightInches: 67, weightLb: 145, weeklyMileageGoal: 15 };
@@ -70,14 +71,51 @@ test("calorie goals are saved by date and stay with their owner", async () => {
     assert.equal((await request("/calorie-goals", "POST", { effectiveDate: "2026-02-31", calories: 2000 })).status, 400);
     assert.equal((await request("/calorie-goals", "POST", { effectiveDate: "2026-01-15", calories: 2000 })).ok, true);
     const updated = await request("/calorie-goals", "POST", { effectiveDate: "2026-01-15", calories: 2100 });
-    assert.equal(updated.goals.length, 1);
+    assert.equal(updated.goals.length, 2);
     assert.equal(updated.goals[0].calories, 2100);
     assert.equal(updated.goals[0].age, 25);
     const later = await request("/calorie-goals", "POST", { effectiveDate: "2026-06-01", calories: 2300 });
     assert.deepEqual(later.goals.map((goal) => [goal.effectiveDate, goal.calories]), [
       ["2026-06-01", 2300],
       ["2026-01-15", 2100],
+      ["2026-01-15", 2000],
     ]);
+    // Both entry points feed the active goal returned to meal tracking.
+    const today = localDate();
+    const profile = { age: 26, height: 67, weight: 145, weeklyMileageGoal: 15, dailyCalorieGoal: 2400 };
+    await request("/calorie-goals", "POST", { effectiveDate: "2000-01-01", calories: 1900 });
+    const active = (await request("/session")).user.dailyCalorieGoal;
+    assert.ok(active > 0);
+    const saved = await request("/profile", "PATCH", profile);
+    assert.equal(saved.user.dailyCalorieGoal, 2400);
+    assert.equal((await request("/session")).user.dailyCalorieGoal, 2400);
+    let history = (await request("/calorie-goals")).goals;
+    assert.equal(calorieGoalOn(history, today).calories, 2400);
+    assert.equal(calorieGoalOn(history, today).age, 26);
+    await request("/profile", "PATCH", { ...profile, age: 27 });
+    assert.equal(calorieGoalOn((await request("/calorie-goals")).goals, today).age, 26);
+    assert.equal((await request("/profile", "PATCH", { ...profile, dailyCalorieGoal: 0 })).status, 400);
+    assert.equal((await request("/session")).user.dailyCalorieGoal, 2400);
+    await request("/profile", "PATCH", { ...profile, dailyCalorieGoal: 2600 });
+    history = (await request("/calorie-goals")).goals;
+    assert.deepEqual(history.filter((goal) => goal.effectiveDate === today).slice(0, 2).map((goal) => goal.calories), [2600, 2400]);
+    assert.equal((await request("/session")).user.dailyCalorieGoal, 2600);
+    const countBefore = history.length;
+    await request("/profile", "PATCH", { ...profile, dailyCalorieGoal: 2600 });
+    assert.equal((await request("/calorie-goals")).goals.length, countBefore);
+    await request("/profile", "PATCH", { ...profile, dailyCalorieGoal: "" });
+    assert.equal((await request("/session")).user.dailyCalorieGoal, null);
+    history = (await request("/calorie-goals")).goals;
+    assert.equal(calorieGoalOn(history, today).calories, null);
+    assert.equal(calorieGoalOn(history, "2000-01-01").calories, 1900);
+    initializeDatabase(db);
+    assert.equal((await request("/session")).user.dailyCalorieGoal, null);
+    const restored = await request("/calorie-goals", "POST", { effectiveDate: today, calories: 2200 });
+    assert.equal(restored.user.dailyCalorieGoal, 2200);
+    assert.deepEqual(restored.goals.filter((goal) => goal.effectiveDate === today).slice(0, 4).map((goal) => goal.calories), [2200, null, 2600, 2400]);
+    assert.equal(calorieGoalOn([...restored.goals].reverse(), today).calories, 2200);
+    await request("/calorie-goals", "POST", { effectiveDate: "2999-01-01", calories: 2500 });
+    assert.equal((await request("/session")).user.dailyCalorieGoal, 2200);
     await request("/session", "DELETE");
     cookie = "";
     assert.equal((await request("/login", "POST", { email: "sam@example.com", password: "demo123" })).ok, true);
@@ -89,4 +127,59 @@ test("calorie goals are saved by date and stay with their owner", async () => {
     await new Promise((resolve) => server.close(resolve));
     db.close();
   }
+});
+
+
+test("legacy calorie goals migrate once, preserving history and the explicit profile target", () => {
+  const db = openDatabase(":memory:");
+  try {
+    initializeDatabase(db);
+    db.exec(`DROP TABLE calorie_goals;
+      CREATE TABLE calorie_goals (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        effective_date TEXT NOT NULL,
+        calories INTEGER NOT NULL CHECK (calories >= 1 AND calories <= 10000),
+        age INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, effective_date)
+      ) STRICT;
+      CREATE INDEX calorie_goals_user_date ON calorie_goals(user_id, effective_date);
+      INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES
+        (1, '2000-01-01', 1900, 25), (2, '2000-01-01', 2100, 30);
+      UPDATE users SET daily_calorie_goal = 2300 WHERE id = 1;`);
+    initializeDatabase(db);
+    const goals = () => db.prepare("SELECT effective_date AS effectiveDate, calories FROM calorie_goals WHERE user_id = 1").all();
+    assert.equal(calorieGoalOn(goals(), localDate()).calories, 2300);
+    assert.equal(calorieGoalOn(goals(), "2000-01-01").calories, 1900);
+    assert.equal(db.prepare("SELECT calories FROM calorie_goals WHERE user_id = 2").get().calories, 2100);
+    db.prepare("UPDATE calorie_goals SET calories = NULL WHERE user_id = 1 AND effective_date = ?").run(localDate());
+    initializeDatabase(db);
+    assert.equal(calorieGoalOn(goals(), localDate()).calories, null);
+    assert.equal(goals().length, 2);
+  } finally { db.close(); }
+});
+
+
+test("same-day history migration retains cleared settings and permits multiple changes", () => {
+  const db = openDatabase(":memory:");
+  try {
+    initializeDatabase(db);
+    db.exec(`DROP TABLE calorie_goals;
+      CREATE TABLE calorie_goals (
+        id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        effective_date TEXT NOT NULL, calories INTEGER, age INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, effective_date)
+      ) STRICT;
+      CREATE INDEX calorie_goals_user_date ON calorie_goals(user_id, effective_date);
+      INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (1, '2026-01-01', NULL, 25);
+      UPDATE users SET daily_calorie_goal = 2200 WHERE id = 1;`);
+    initializeDatabase(db);
+    assert.equal(db.prepare("SELECT calories FROM calorie_goals").get().calories, null);
+    db.exec("INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (1, '2026-01-01', 2400, 25)");
+    initializeDatabase(db);
+    const goals = db.prepare("SELECT id, effective_date AS effectiveDate, calories FROM calorie_goals ORDER BY id").all();
+    assert.equal(goals.length, 2);
+    assert.equal(calorieGoalOn(goals, '2026-01-01').calories, 2400);
+  } finally { db.close(); }
 });
