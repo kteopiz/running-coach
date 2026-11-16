@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createMeal, deleteMeal, getMeals, updateMeal } from "../lib/userStore";
 import { localDate } from "../lib/runValidation";
 import { MEAL_KINDS, calorieProgress, validateMealFields } from "../lib/meals";
+import { formatCalories } from "../lib/format";
 
 function formatDate(date) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -97,9 +98,9 @@ export default function MealLog({ user, onNavigate }) {
       {progress ? (
         <>
           <div className="metrics">
-            <div><p className="metric-label">Consumed</p><p className="metric-value">{loading ? "—" : progress.consumedCalories.toLocaleString()}<span> cal</span></p></div>
-            <div><p className="metric-label">Calorie goal</p><p className="metric-value">{progress.goalCalories == null ? "—" : progress.goalCalories.toLocaleString()}<span> cal</span></p></div>
-            <div><p className="metric-label">Remaining</p><p className="metric-value">{loading || progress.remainingCalories == null ? "—" : progress.remainingCalories.toLocaleString()}<span> cal</span></p></div>
+            <div><p className="metric-label">Consumed</p><p className="metric-value">{loading ? "—" : formatCalories(progress.consumedCalories)}<span> cal</span></p></div>
+            <div><p className="metric-label">Calorie goal</p><p className="metric-value">{progress.goalCalories == null ? "—" : formatCalories(progress.goalCalories)}<span> cal</span></p></div>
+            <div><p className="metric-label">Remaining</p><p className="metric-value">{loading || progress.remainingCalories == null ? "—" : formatCalories(progress.remainingCalories)}<span> cal</span></p></div>
           </div>
           {progress.status === "no-goal" ? <p className="muted">Set a daily calorie goal to see what's left. <button className="text-button" type="button" onClick={() => onNavigate("profile")}>Set calorie goal</button></p> : null}
           {progress.goalCalories != null && !loading ? (
@@ -108,7 +109,7 @@ export default function MealLog({ user, onNavigate }) {
                 <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
               </div>
               <div className="progress-caption">
-                <span>{progress.status === "over-goal" ? `${progress.overCalories.toLocaleString()} cal over your goal.` : progress.status === "complete" ? "Daily calorie goal reached." : `Calories logged for ${formatDate(selectedDate)}.`}</span>
+                <span>{progress.status === "over-goal" ? `${formatCalories(progress.overCalories)} cal over your goal.` : progress.status === "complete" ? "Daily calorie goal reached." : `Calories logged for ${formatDate(selectedDate)}.`}</span>
                 <strong>{progressPercent}% of goal</strong>
               </div>
             </>
@@ -127,7 +128,7 @@ export default function MealLog({ user, onNavigate }) {
             <li className="run-row meal-row" key={meal.id}>
               <div className="run-date"><div><span>{kindLabel(meal.kind)}</span><span className="muted meal-description">{meal.description}</span></div></div>
               <div className="run-stat"><strong>{formatTime(meal.time)}</strong><span className="muted">Time</span></div>
-              <div className="run-stat"><strong>{meal.calories.toLocaleString()}<span> cal</span></strong><span className="muted">Calories</span></div>
+              <div className="run-stat"><strong>{formatCalories(meal.calories)}<span> cal</span></strong><span className="muted">Calories</span></div>
               <div className="run-stat"><strong>{meal.weightLb}<span> lb</span></strong><span className="muted">Profile weight</span></div>
               <div className="row-actions">
                 <button type="button" disabled={pending || Boolean(editing)} aria-label={`Edit ${kindLabel(meal.kind).toLowerCase()} on ${meal.date}`} onClick={() => { setMessage(""); setActionError(""); setEditing(meal); }}>Edit</button>

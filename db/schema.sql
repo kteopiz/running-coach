@@ -28,10 +28,9 @@ CREATE TABLE IF NOT EXISTS calorie_goals (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   effective_date TEXT NOT NULL CHECK (date(effective_date) IS NOT NULL AND date(effective_date) = effective_date),
-  calories INTEGER NOT NULL CHECK (calories >= 1 AND calories <= 10000),
+  calories INTEGER CHECK (calories >= 1 AND calories <= 10000),
   age INTEGER NOT NULL CHECK (age >= 1),
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (user_id, effective_date)
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS calorie_goals_user_date ON calorie_goals(user_id, effective_date);

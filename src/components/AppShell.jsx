@@ -13,7 +13,7 @@ export default function AppShell({ user, page, onNavigate, children }) {
             <button aria-current={page === "dashboard" ? "page" : undefined} onClick={() => onNavigate("dashboard")}>Overview</button>
             <button aria-current={page === "profile" ? "page" : undefined} onClick={() => onNavigate("profile")}>Profile & goal</button>
           </nav>
-          <div className="header-account"><ThemeToggle /><span>{user.name}</span><button onClick={() => onNavigate("signout")}>Sign out</button></div>
+          <div className="header-account"><ThemeToggle /><span className="account-name" aria-label={`Signed in as ${user.name}`}>{user.name}</span><button onClick={() => onNavigate("signout")}>Sign out</button></div>
         </div>
       </header>
       <main className="page" id="main-content">{children}</main>
