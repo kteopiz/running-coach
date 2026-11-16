@@ -189,6 +189,8 @@ main:not(.page) h1 { font-size: 36px; }
   .run-icon { display: none; }
   main:not(.page) { margin: 24px auto; padding: 24px; }
 }
+.height-entry { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.height-entry .error { grid-column: 1 / -1; }
 .weekly-goal-field { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 3px; }
 @media (max-width: 760px) {
   button { min-height: 44px; }

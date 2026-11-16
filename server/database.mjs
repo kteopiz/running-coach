@@ -38,6 +38,9 @@ export function initializeDatabase(db, { reset = false } = {}) {
         SELECT id, ?, daily_calorie_goal, age FROM users WHERE daily_calorie_goal IS NOT NULL`)
         .run(localDate());
     }
+    if (!userColumns.includes("unit_system")) {
+      db.exec("ALTER TABLE users ADD COLUMN unit_system TEXT NOT NULL DEFAULT 'imperial'");
+    }
     const runColumns = db.prepare("PRAGMA table_info(runs)").all().map((column) => column.name);
     if (runColumns.length && !runColumns.includes("start_time")) {
       db.exec(`ALTER TABLE runs ADD COLUMN start_time TEXT CHECK (

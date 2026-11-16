@@ -36,7 +36,7 @@ use Sunday through Saturday in the server computer's local time.
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, recommendations, meal logging, daily calorie progress, the calorie estimate, and calorie-goal history using temporary databases.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, recommendations, meal logging, daily calorie progress, the calorie estimate, calorie-goal history, and imperial/metric unit conversion using temporary databases.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -58,10 +58,13 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | email | TEXT, required, unique | Case-insensitive account email |
 | password_hash | TEXT, required | Salted scrypt password hash; never sent to the UI |
 | age | INTEGER, required | Age, at least 1 |
-| height_inches | REAL, required | Height in inches, at least 1 |
-| weight_lb | REAL, required | Weight in pounds, at least 1 |
-| weekly_mileage_goal | REAL, optional | Positive weekly mileage goal; NULL means unset |
+| height_inches | REAL, required | Height in inches, at least 1. The UI shows feet and inches, or centimeters |
+| weight_lb | REAL, required | Weight in pounds, at least 1. Weight stays in pounds |
+| weekly_mileage_goal | REAL, optional | Positive weekly mileage goal in miles; NULL means unset. The UI can show kilometers |
+| unit_system | TEXT, required | `imperial` or `metric`. Existing accounts default to imperial |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
+
+The runner chooses imperial or metric on sign-up and on the profile. The choice is saved on the account. Height is stored in inches and shown as feet and inches or centimeters. Weekly goals and run distances are stored in miles and shown as miles or kilometers. Switching units converts the values on screen and leaves the stored numbers consistent. Weight stays in pounds. The calorie estimate still uses the stored inches, pounds, and miles.
 
 ### runs
 
@@ -70,7 +73,7 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | id | INTEGER, primary key | Run identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their runs |
 | run_date | TEXT, required | Calendar date in YYYY-MM-DD format |
-| distance_miles | REAL, required | Positive distance in miles |
+| distance_miles | REAL, required | Positive distance in miles. A metric account shows the same distance in kilometers |
 | duration_minutes | REAL, nullable for legacy records | Positive duration in minutes; required when creating or editing through the API |
 | notes | TEXT | Description; defaults to an empty string |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |

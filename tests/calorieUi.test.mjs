@@ -20,6 +20,17 @@ test("profile has one calorie editor and meal setup prompt follows the active go
     assert.equal((profile.match(/name="dailyCalorieGoal"/g) || []).length, 1);
     assert.doesNotMatch(profile, /Save calorie goal|name="calories"/);
     assert.match(profile, /<details[^>]*><summary>Calorie goal history/);
+    const metricUser = { ...user, unitSystem: "metric" };
+    const metricProfile = renderToStaticMarkup(createElement(Profile, { user: metricUser }));
+    assert.match(metricProfile, /Height \(cm\)/);
+    assert.match(metricProfile, /Weekly mileage goal \(km\)/);
+    assert.equal((metricProfile.match(/name="dailyCalorieGoal"/g) || []).length, 1);
+    assert.doesNotMatch(metricProfile, /Save calorie goal|Goal on this date/);
+    const { default: Dashboard } = await vite.ssrLoadModule("/src/pages/Dashboard.jsx");
+    const dashboard = renderToStaticMarkup(createElement(Dashboard, { user: metricUser }));
+    assert.match(dashboard, /Sunday – Saturday · Kilometers/);
+    assert.match(dashboard, /170\.2 cm/);
+    assert.doesNotMatch(dashboard, /Monday – Sunday/);
     assert.doesNotMatch(renderToStaticMarkup(createElement(MealLog, { user })), /Set calorie goal/);
     assert.match(renderToStaticMarkup(createElement(MealLog, { user: { ...user, dailyCalorieGoal: null } })), /Set calorie goal/);
   } finally { await vite.close(); }

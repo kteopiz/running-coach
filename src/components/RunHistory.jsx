@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createRun, updateRun, deleteRun } from "../lib/userStore";
 import { localDate, localTime, validateRunFields } from "../lib/runValidation";
 import { sortRuns } from "../lib/runSort";
-import { formatMiles } from "../lib/format";
+import { distanceFieldLabel, distanceInputValue, distanceUnitName, distanceUnitShort, formatDistanceAmount, milesFromDistanceEntry } from "../lib/units";
 
 const SORTS = [
   ["newest", "Newest first"],
@@ -20,13 +20,14 @@ function formatClock(value) {
   return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
-function runLabel(run) {
+function runLabel(run, unitSystem) {
   const date = new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  const miles = Number(run.distanceMiles) === 1 ? "mile" : "miles";
-  return `${date} at ${formatClock(run.startTime)}, ${formatMiles(run.distanceMiles)} ${miles}`;
+  const amount = formatDistanceAmount(run.distanceMiles, unitSystem);
+  const name = amount === "1" && distanceUnitName(unitSystem) === "miles" ? "mile" : distanceUnitName(unitSystem);
+  return `${date} at ${formatClock(run.startTime)}, ${amount} ${name}`;
 }
 
-export default function RunHistory({ runs, loading, error, onRefresh }) {
+export default function RunHistory({ runs, loading, error, onRefresh, unitSystem = "imperial" }) {
   const [editing, setEditing] = useState(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -58,14 +59,14 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
       <button className="primary-button" type="button" disabled={pending || Boolean(editing)} onClick={() => {
         setMessage("");
         setActionError("");
-        setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "", notes: "" });
+        setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "", notes: "", unitSystem });
       }}>+ Log a run</button></div>
       <label className="sort-control">Sort
         <select value={sort} onChange={event => setSort(event.target.value)} aria-label="Sort run history">
           {SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
-      {editing ? <RunForm key={editing.id || "new"} run={editing} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
+      {editing ? <RunForm key={`${editing.id || "new"}-${unitSystem}`} run={editing} unitSystem={unitSystem} onSaved={handleSaved} onCancel={() => setEditing(null)} /> : null}
       {message ? <p role="status">{message}</p> : null}
       {actionError ? <p className="error" role="alert">{actionError}</p> : null}
       {loading && runs.length === 0 ? <p>Loading runs…</p> : null}
@@ -76,7 +77,7 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
           {ordered.map(run => (
             <li className="run-row" key={run.id}>
               <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
-              <div className="run-stat"><strong>{formatMiles(run.distanceMiles)}<span> mi</span></strong><span className="muted">Distance</span></div>
+              <div className="run-stat"><strong>{formatDistanceAmount(run.distanceMiles, unitSystem)}<span> {distanceUnitShort(unitSystem)}</span></strong><span className="muted">Distance</span></div>
               <div className="run-stat"><strong>{run.durationMinutes ?? "—"}<span>{run.durationMinutes == null ? "" : " min"}</span></strong><span className="muted">{run.durationMinutes == null ? "Not recorded" : "Duration"}</span></div>
               {run.notes ? <p className="run-notes">{run.notes}</p> : null}
               <div className="row-actions">
@@ -84,8 +85,8 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
                 setMessage("");
                 setActionError("");
                 setEditing(run);
-              }} aria-label={`Edit run on ${runLabel(run)}`}>Edit</button>
-              <button className="danger-button" type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${runLabel(run)}`}>Delete</button></div>
+              }} aria-label={`Edit run on ${runLabel(run, unitSystem)}`}>Edit</button>
+              <button className="danger-button" type="button" disabled={pending || Boolean(editing)} onClick={() => handleDelete(run)} aria-label={`Delete run on ${runLabel(run, unitSystem)}`}>Delete</button></div>
             </li>
           ))}
         </ul>
@@ -94,11 +95,11 @@ export default function RunHistory({ runs, loading, error, onRefresh }) {
   );
 }
 
-function RunForm({ run, onSaved, onCancel }) {
+function RunForm({ run, unitSystem = "imperial", onSaved, onCancel }) {
   const [fields, setFields] = useState({
     date: run.date,
     startTime: run.startTime || "",
-    distanceMiles: run.distanceMiles,
+    distance: run.distanceMiles === "" || run.distanceMiles == null ? "" : distanceInputValue(run.distanceMiles, unitSystem),
     durationMinutes: run.durationMinutes ?? "",
     notes: run.notes ?? "",
   });
@@ -108,13 +109,22 @@ function RunForm({ run, onSaved, onCancel }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (pending) return;
-    const nextErrors = validateRunFields(fields);
+    const parsed = milesFromDistanceEntry(fields.distance, unitSystem);
+    const nextErrors = validateRunFields({ ...fields, distanceMiles: parsed.miles ?? 1 });
+    if (parsed.error) nextErrors.distance = parsed.error;
+    else if (nextErrors.distanceMiles) nextErrors.distance = nextErrors.distanceMiles;
+    delete nextErrors.distanceMiles;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     setPending(true);
-    const result = run.id ? await updateRun(run.id, fields) : await createRun(fields);
+    const payload = { date: fields.date, startTime: fields.startTime, distanceMiles: parsed.miles, durationMinutes: fields.durationMinutes, notes: fields.notes };
+    const result = run.id ? await updateRun(run.id, payload) : await createRun(payload);
     setPending(false);
-    if (!result.ok) return setErrors(result.errors || { form: result.error });
+    if (!result.ok) {
+      const serverErrors = result.errors || { form: result.error };
+      if (serverErrors.distanceMiles) serverErrors.distance = serverErrors.distanceMiles;
+      return setErrors(serverErrors);
+    }
     onSaved();
   }
 
@@ -124,8 +134,6 @@ function RunForm({ run, onSaved, onCancel }) {
       {[
         ["date", "Date", "date"],
         ["startTime", "Start time", "time"],
-        ["distanceMiles", "Distance (miles)", "number"],
-        ["durationMinutes", "Duration (minutes)", "number"],
       ].map(([name, label, type]) => (
         <label key={name}>
           {label}
@@ -137,6 +145,16 @@ function RunForm({ run, onSaved, onCancel }) {
           {errors[name] ? <span className="error" id={`run-${name}-error`}>{errors[name]}</span> : null}
         </label>
       ))}
+      <label>
+        {distanceFieldLabel(unitSystem)}
+        <input name="distance" type="number" required disabled={pending} min="0" step="any" value={fields.distance} onChange={(event) => setFields({ ...fields, distance: event.target.value })} aria-invalid={Boolean(errors.distance)} aria-describedby={errors.distance ? "run-distance-error" : undefined} />
+        {errors.distance ? <span className="error" id="run-distance-error">{errors.distance}</span> : null}
+      </label>
+      <label>
+        Duration (minutes)
+        <input name="durationMinutes" type="number" required disabled={pending} min="0" step="any" value={fields.durationMinutes} onChange={(event) => setFields({ ...fields, durationMinutes: event.target.value })} aria-invalid={Boolean(errors.durationMinutes)} aria-describedby={errors.durationMinutes ? "run-durationMinutes-error" : undefined} />
+        {errors.durationMinutes ? <span className="error" id="run-durationMinutes-error">{errors.durationMinutes}</span> : null}
+      </label>
       <label className="notes-field">
         Notes
         <textarea name="notes" rows={3} maxLength={500} disabled={pending} value={fields.notes}
