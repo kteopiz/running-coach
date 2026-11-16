@@ -3,6 +3,7 @@ import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
 import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
+import { localDate } from "../lib/runValidation";
 import { formatCalories, formatMiles } from "../lib/format";
 
 import AppShell from "../components/AppShell";
@@ -56,12 +57,13 @@ export default function Dashboard({ user, onNavigate }) {
   }) : null;
   const progressPercent = progress?.progress == null ? 0 : Math.min(progress.status === "in-progress" ? 99 : 100, Math.round(progress.progress * 100));
   const calorieEstimate = estimateDailyCalories(user);
+  const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
   return (
     <AppShell user={user} page="dashboard" onNavigate={onNavigate}>
       <div className="page-heading">
         <div><p className="eyebrow">YOUR TRAINING, AT A GLANCE</p><h1>Overview</h1><p className="muted">Welcome back, {user.name}.</p></div>
-        <span className="date-label">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
+        <time className="date-label" dateTime={localDate()} aria-label={`Today, ${todayLabel}`}>{todayLabel}</time>
       </div>
       <section className="panel weekly-panel" aria-labelledby="progress-heading">
         <div className="section-heading"><div><h2 id="progress-heading">This week</h2><p className="muted">Sunday – Saturday · Miles</p></div>
