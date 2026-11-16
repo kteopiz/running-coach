@@ -149,6 +149,7 @@ test("an older database gains the daily calorie goal and meals table", () => {
     initializeDatabase(db);
     const names = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
     assert.ok(names.includes("daily_calorie_goal"));
+    assert.ok(names.includes("unit_system"));
     assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'meals'").get());
   } finally {
     db.close();

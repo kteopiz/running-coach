@@ -3,14 +3,16 @@ import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./passwords.mjs";
 import { validateAccountFields, validateMeasurements, validateName, validateProfileFields } from "../src/lib/validation.js";
 
-import { validateRunFields } from "../src/lib/runValidation.js";
-import { weekBounds } from "../src/lib/week.js";
+import { localDate, validateRunFields } from "../src/lib/runValidation.js";
+import { weekBounds } from "../src/lib/recommendation.js";
 import { validateCalorieGoal } from "../src/lib/calories.js";
 import { validateMealFields } from "../src/lib/meals.js";
+import { parseUnitSystem } from "../src/lib/units.js";
 
 const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const publicColumns = `id, name, email, age, height_inches AS height,
-  weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal, daily_calorie_goal AS dailyCalorieGoal`;
+  weight_lb AS weight, weekly_mileage_goal AS weeklyMileageGoal, daily_calorie_goal AS dailyCalorieGoal,
+  unit_system AS unitSystem`;
 const mealColumns = `id, meal_date AS date, meal_time AS time, kind, description, calories, weight_lb AS weightLb`;
 const RUN_COLUMNS = `SELECT id, run_date AS date, start_time AS startTime, distance_miles AS distanceMiles,
   duration_minutes AS durationMinutes, notes FROM runs`;
@@ -43,13 +45,29 @@ async function readBody(req) {
 }
 
 export function createApi(db) {
-  const publicUser = (id) => db.prepare(`SELECT ${publicColumns} FROM users WHERE id = ?`).get(id);
+  const publicUser = (id) => {
+    const user = db.prepare(`SELECT ${publicColumns} FROM users WHERE id = ?`).get(id);
+    if (!user) return user;
+    const goal = db.prepare(`SELECT calories FROM calorie_goals
+      WHERE user_id = ? AND effective_date <= ? ORDER BY effective_date DESC, id DESC LIMIT 1`).get(id, localDate());
+    if (goal) user.dailyCalorieGoal = goal.calories;
+    return user;
+  };
+  const recordGoal = (id, date, calories, age) => db.prepare(`
+    INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (?, ?, ?, ?)
+  `).run(id, date, calories, age);
   const tokenFrom = (req) => req.headers.cookie?.split(";").map(part => part.trim()).find(part => part.startsWith("running_coach_session="))?.slice("running_coach_session=".length);
   const sessionUser = (req) => {
     const token = tokenFrom(req);
     if (!token) return null;
     const session = db.prepare("SELECT user_id FROM sessions WHERE token = ? AND expires_at > ?").get(token, now());
     return session ? publicUser(session.user_id) : null;
+  };
+  const unitSystemFor = (body, fallback) => {
+    if (body.unitSystem == null || body.unitSystem === "") return fallback;
+    const parsed = parseUnitSystem(body.unitSystem);
+    if (parsed.error) fail(parsed.error);
+    return parsed.unitSystem;
   };
   const startSession = (req, res, id) => {
     const oldToken = tokenFrom(req);
@@ -83,8 +101,9 @@ export function createApi(db) {
         if (Object.keys(errors).length) fail(Object.values(errors)[0]);
         const email = emailKey(body.email);
         if (db.prepare("SELECT id FROM users WHERE email = ?").get(email)) fail("An account with this email already exists.", 409);
-        const inserted = db.prepare(`INSERT INTO users (name, email, password_hash, age, height_inches, weight_lb)
-          VALUES (?, ?, ?, ?, ?, ?)`).run(name, email, hashPassword(body.password), Number(body.age), Number(body.height), Number(body.weight));
+        const unitSystem = unitSystemFor(body, "imperial");
+        const inserted = db.prepare(`INSERT INTO users (name, email, password_hash, age, height_inches, weight_lb, unit_system)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`).run(name, email, hashPassword(body.password), Number(body.age), Number(body.height), Number(body.weight), unitSystem);
         const id = Number(inserted.lastInsertRowid);
         startSession(req, res, id);
         return respond(res, 201, { ok: true, user: publicUser(id) });
@@ -125,8 +144,16 @@ export function createApi(db) {
         const errors = validateProfileFields(body);
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
         const dailyCalorieGoal = body.dailyCalorieGoal == null || body.dailyCalorieGoal === "" ? null : Number(body.dailyCalorieGoal);
-        db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ? WHERE id = ?")
-          .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, user.id);
+        const unitSystem = unitSystemFor(body, user.unitSystem || "imperial");
+        db.exec("BEGIN");
+        try {
+          db.prepare("UPDATE users SET age = ?, height_inches = ?, weight_lb = ?, weekly_mileage_goal = ?, daily_calorie_goal = ?, unit_system = ? WHERE id = ?")
+            .run(Number(body.age), Number(body.height), Number(body.weight), Number(body.weeklyMileageGoal), dailyCalorieGoal, unitSystem, user.id);
+          if (dailyCalorieGoal !== user.dailyCalorieGoal) {
+            recordGoal(user.id, localDate(), dailyCalorieGoal, Number(body.age));
+          }
+          db.exec("COMMIT");
+        } catch (error) { db.exec("ROLLBACK"); throw error; }
         return respond(res, 200, { ok: true, user: publicUser(user.id) });
       }
       if (route === "PATCH /api/account") {
@@ -157,10 +184,8 @@ export function createApi(db) {
         const body = await readBody(req);
         const errors = validateCalorieGoal(body);
         if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
-        db.prepare(`INSERT INTO calorie_goals (user_id, effective_date, calories, age) VALUES (?, ?, ?, ?)
-          ON CONFLICT(user_id, effective_date) DO UPDATE SET calories = excluded.calories, age = excluded.age`)
-          .run(user.id, body.effectiveDate, Number(body.calories), user.age);
-        return respond(res, 200, { ok: true, goals: listGoals() });
+        recordGoal(user.id, body.effectiveDate, Number(body.calories), user.age);
+        return respond(res, 200, { ok: true, goals: listGoals(), user: publicUser(user.id) });
       }
       if (route === "POST /api/runs" || runMutation) {
         const id = runMatch ? Number(runMatch[1]) : null;
@@ -219,10 +244,10 @@ export function createApi(db) {
         return respond(res, req.method === "POST" ? 201 : 200, { ok: true, meal });
       }
       const today = new Date();
-      const { startDate, todayDate } = weekBounds(today);
+      const { startDate } = weekBounds(today);
       const runs = db.prepare(`${RUN_COLUMNS} WHERE user_id = ? ORDER BY run_date DESC, start_time DESC, id DESC`).all(user.id);
       const { total } = db.prepare("SELECT COALESCE(SUM(distance_miles), 0) AS total FROM runs WHERE user_id = ? AND run_date >= ? AND run_date <= ?")
-        .get(user.id, startDate, todayDate);
+        .get(user.id, startDate, localDate(today));
       return respond(res, 200, { ok: true, runs, weeklyMiles: total });
     } catch (error) {
       if (!error.status) console.error(error);

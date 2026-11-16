@@ -1,5 +1,8 @@
+import HeightFields from "./components/HeightFields";
 import ThemeToggle from "./components/ThemeToggle";
+import UnitSystemField from "./components/UnitSystemField";
 import { useEffect, useState } from "react";
+import { convertHeightEntry, inchesFromHeightEntry } from "./lib/units";
 import {
   authenticateUser,
   clearSession,
@@ -10,6 +13,7 @@ import {
 } from "./lib/userStore";
 import { validateMeasurements } from "./lib/validation";
 import Dashboard from "./pages/Dashboard";
+import HowItWorks from "./pages/HowItWorks";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 
@@ -56,6 +60,10 @@ export default function App() {
         onNavigate={handleNavigate}
       />
     );
+  }
+
+  if (user && page === "guide") {
+    return <HowItWorks user={user} onNavigate={handleNavigate} />;
   }
 
   if (user && page === "profile") {
@@ -114,17 +122,42 @@ export default function App() {
 
 function SignUp({ onBack, onSuccess }) {
   const [error, setError] = useState("");
+  const [heightError, setHeightError] = useState("");
   const [pending, setPending] = useState(false);
+  const [unitSystem, setUnitSystem] = useState("imperial");
+  const [feet, setFeet] = useState("");
+  const [inchPart, setInchPart] = useState("");
+  const [centimeters, setCentimeters] = useState("");
+
+  function changeUnits(next) {
+    if (next === unitSystem) return;
+    const converted = convertHeightEntry({ unitSystem, feet, inches: inchPart, centimeters }, next);
+    if (converted.error) {
+      setHeightError(converted.error);
+      return;
+    }
+    setHeightError("");
+    setUnitSystem(next);
+    setFeet(converted.feet);
+    setInchPart(converted.inches);
+    setCentimeters(converted.centimeters);
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     if (pending) return;
     setError("");
+    setHeightError("");
+    const parsedHeight = inchesFromHeightEntry({ unitSystem, feet, inches: inchPart, centimeters });
+    if (parsedHeight.error) {
+      setHeightError(parsedHeight.error);
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const nameError = validateName(String(form.get("name") ?? ""));
     const measurementErrors = validateMeasurements({
       age: form.get("age"),
-      height: form.get("height"),
+      height: parsedHeight.inches,
       weight: form.get("weight"),
     });
     const firstError = nameError || measurementErrors.age || measurementErrors.height || measurementErrors.weight;
@@ -138,8 +171,9 @@ function SignUp({ onBack, onSuccess }) {
       email: form.get("email"),
       password: form.get("password"),
       age: form.get("age"),
-      height: form.get("height"),
+      height: parsedHeight.inches,
       weight: form.get("weight"),
+      unitSystem,
     });
     setPending(false);
 
@@ -168,14 +202,22 @@ function SignUp({ onBack, onSuccess }) {
           Password
           <input name="password" type="password" required />
         </label>
+        <UnitSystemField value={unitSystem} onChange={changeUnits} disabled={pending} />
         <label>
           Age
           <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" required />
         </label>
-        <label>
-          Height (inches)
-          <input name="height" type="number" min={INPUT_LIMITS.minHeightInches} max={INPUT_LIMITS.maxHeightInches} step="0.1" required />
-        </label>
+        <HeightFields
+          unitSystem={unitSystem}
+          feet={feet}
+          inches={inchPart}
+          centimeters={centimeters}
+          onFeet={setFeet}
+          onInches={setInchPart}
+          onCentimeters={setCentimeters}
+          error={heightError}
+          disabled={pending}
+        />
         <label>
           Weight (lb)
           <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" required />

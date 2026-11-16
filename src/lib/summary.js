@@ -39,17 +39,15 @@ function targetForDate(goals, dailyGoal, date) {
 }
 
 export function weeklyCalorieDifference({ meals = [], goals = [], dailyGoal = null, today = new Date() } = {}) {
-  const { startDate, todayDate } = weekBounds(today);
-  const days = eachDate(startDate, todayDate);
-  const targets = days.map((date) => targetForDate(goals, dailyGoal, date));
-  if (targets.every((value) => value == null)) return { status: "missing", consumed: 0, target: null, difference: null, startDate, todayDate };
+  const grouped = groupMealsByDay({ meals, today });
+  const { startDate, todayDate, total } = grouped;
+  if (grouped.empty) return { status: "missing", consumed: 0, target: null, difference: null, startDate, todayDate };
+  const targets = grouped.days.map((day) => targetForDate(goals, dailyGoal, day.date));
+  if (targets.every((value) => value == null)) return { status: "missing", consumed: total, target: null, difference: null, startDate, todayDate };
   const target = targets.reduce((sum, value) => sum + (value || 0), 0);
-  const consumed = (Array.isArray(meals) ? meals : [])
-    .filter((meal) => meal.date >= startDate && meal.date <= todayDate)
-    .reduce((sum, meal) => sum + Number(meal.calories || 0), 0);
-  const difference = consumed - target;
+  const difference = total - target;
   const status = difference > 0 ? "above" : difference < 0 ? "below" : "met";
-  return { status, consumed, target, difference, startDate, todayDate };
+  return { status, consumed: total, target, difference, startDate, todayDate };
 }
 
 const MEAL_PERIODS = ["breakfast", "lunch", "dinner", "snack"];

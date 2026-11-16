@@ -1,4 +1,5 @@
 import { localDate } from "./runValidation.js";
+import { weekBounds as recommendationBounds } from "./recommendation.js";
 
 function asDate(value) {
   if (value instanceof Date) return value;
@@ -9,12 +10,15 @@ function asDate(value) {
   return new Date();
 }
 
-// Monday is the first day and Sunday is the last, matching the overview week.
+function todayDate(today) {
+  if (typeof today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(today)) return today;
+  return localDate(today instanceof Date ? today : new Date());
+}
+
+// Sunday is the first day and Saturday is the last, matching the overview week.
 export function weekBounds(today = new Date()) {
-  const date = asDate(today);
-  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
-  return { startDate: localDate(start), endDate: localDate(end), todayDate: localDate(date) };
+  const bounds = recommendationBounds(today);
+  return { startDate: bounds.startDate, endDate: bounds.endDate, todayDate: todayDate(today) };
 }
 
 export function eachDate(startDate, endDate) {

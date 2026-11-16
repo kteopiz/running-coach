@@ -30,13 +30,13 @@ Sample accounts (both use password **demo123**):
 | sam@example.com | Profile with no weekly goal or runs |
 
 Seed run dates are relative to the date the database is created. Weekly totals
-use Monday through Sunday in the server computer's local time.
+use Sunday through Saturday in the server computer's local time.
 
 ## Database commands
 
 - `npm run db:setup`: initialize the database without starting the app; preserve existing data.
 - `npm run db:reset`: delete local data and restore sample data after you type `RESET` at the prompt. Stop the app before resetting.
-- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, recommendations, meal logging, daily calorie progress, the calorie estimate, and calorie-goal history using temporary databases.
+- `npm test`: run the automated tests covering persistence, schema constraints, accounts, run CRUD/ownership/validation, weekly progress, recommendations, meal logging, daily calorie progress, the calorie estimate, calorie-goal history, and imperial/metric unit conversion using temporary databases.
 - `npm run build`: build the React frontend. Previewing that build alone does not start the API; use `npm run dev` for the complete local app.
 
 The shared schema and fixtures belong in Git. `data/` is ignored so each teammate
@@ -58,10 +58,13 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | email | TEXT, required, unique | Case-insensitive account email |
 | password_hash | TEXT, required | Salted scrypt password hash; never sent to the UI |
 | age | INTEGER, required | Age, a whole number from 10 to 100 |
-| height_inches | REAL, required | Height in inches, from 36 to 96 |
-| weight_lb | REAL, required | Weight in pounds, from 50 to 400 |
-| weekly_mileage_goal | REAL, optional | Weekly mileage goal from 0.1 to 100 miles; NULL means unset |
+| height_inches | REAL, required | Height in inches, from 36 to 96. The UI shows feet and inches, or centimeters |
+| weight_lb | REAL, required | Weight in pounds, from 50 to 400. Weight stays in pounds |
+| weekly_mileage_goal | REAL, optional | Weekly mileage goal from 0.1 to 100 miles; NULL means unset. The UI can show kilometers |
+| unit_system | TEXT, required | `imperial` or `metric`. Existing accounts default to imperial |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
+
+The runner chooses imperial or metric on sign-up and on the profile. The choice is saved on the account. Height is stored in inches and shown as feet and inches or centimeters. Weekly goals and run distances are stored in miles and shown as miles or kilometers. Switching units converts the values on screen and leaves the stored numbers consistent. Weight stays in pounds. The calorie estimate still uses the stored inches, pounds, and miles.
 
 ### runs
 
@@ -70,7 +73,7 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | id | INTEGER, primary key | Run identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their runs |
 | run_date | TEXT, required | Calendar date in YYYY-MM-DD format |
-| distance_miles | REAL, required | Distance from 0.1 to 100 miles |
+| distance_miles | REAL, required | Distance from 0.1 to 100 miles. A metric account shows the same distance in kilometers |
 | duration_minutes | REAL, nullable for legacy records | Positive duration in minutes; required when creating or editing through the API |
 | notes | TEXT | Description, at most 500 characters; defaults to an empty string |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
@@ -95,7 +98,7 @@ the session, ignoring client-supplied ownership fields.
 
 | Method and path | Behavior |
 | --- | --- |
-| `GET /api/runs` | All owned runs and `weeklyMiles` (Monday through today, inclusive) |
+| `GET /api/runs` | All owned runs and `weeklyMiles` (Sunday through today, inclusive) |
 | `POST /api/runs` | Create with `{ date, distanceMiles, durationMinutes }`; returns 201 and `run` |
 | `PATCH /api/runs/:id` | Update all three required fields; returns 200 and `run` |
 | `DELETE /api/runs/:id` | Delete the owned run; returns 200 |
@@ -109,7 +112,7 @@ distance, while the progress bar stops at 100%.
 ## Today's recommendation
 
 The dashboard suggests one distance for today from the signed-in runner's weekly
-goal and the miles already completed this week (Monday through today). The rules
+goal and the miles already completed this week (Sunday through today). The rules
 live in `src/lib/recommendation.js` and do not use age, height, or weight.
 
 ### TS-05 inputs and outputs
@@ -118,18 +121,23 @@ live in `src/lib/recommendation.js` and do not use age, height, or weight.
 (default empty), `today` (default the local current date), and optional `daysLeft`.
 Use validated YYYY-MM-DD run dates and a valid Date or YYYY-MM-DD value for
 `today`. Supply `today` explicitly for reproducible tests. The dashboard supplies
-all run dates and the API's Monday-through-today total. Age, height, and weight
+all run dates and the API's Sunday-through-today total. Age, height, and weight
 are not inputs.
 
 A missing, nonfinite, or nonpositive goal produces no recommendation. Negative
 or nonfinite completed mileage counts as zero. Days left are derived from the
-local calendar (Monday 7, Sunday 1), or a supplied finite value is truncated and
-clamped to 1–7. Only distinct run dates from Monday through today count toward
+local calendar (Sunday 7, Saturday 1), or a supplied finite value is truncated and
+clamped to 1–7. Only distinct run dates from Sunday through today count toward
 recovery; duplicates, earlier weeks, and future dates do not count.
 
 Outputs include `todayMiles`, `remainingMiles`, `daysLeft`, `ranToday`, a `status`
-(`no-goal`, `suggested`, `reduced`, or `rest`), and an explanatory `message`.
-Missing goals return null distances; rest returns zero today miles.
+(`no-goal`, `suggested`, `reduced`, or `rest`), a `rule` (`even`,
+`weekly-allocation`, `daily-cap`, or null), and an explanatory `message`.
+Missing goals return null distances; rest returns zero today miles. The message
+names the rule that set the distance. An even split that already fits says so.
+A day held to 25% of the weekly goal says that, and a day held to 6 miles names
+the daily safety cap. A run already logged today says the shown distance is half
+of that capped suggestion.
 
 ### Rule priority and precision
 
@@ -146,7 +154,9 @@ Rules are centralized in `src/lib/recommendation.js` and applied in this order:
    suggested. If a run is already logged today, halve the bounded suggestion
    and round to tenths again.
 6. A zero suggestion means rest. A tiny positive remainder does not mean the
-   weekly goal is complete; the message distinguishes this case.
+   weekly goal is complete; the message distinguishes this case. A positive
+   suggestion names whether an even weekly allocation, the 25% allocation, or
+   the 6-mile daily safety cap set it.
 
 The API preserves weekly totals without rounding to tenths. Remaining mileage
 is `max(0, goal - completed)`, shared by weekly progress and the coach. Calculations
@@ -174,7 +184,7 @@ the recommendation while existing content remains visible.
 Automated: `npm test` and `npm run build`. The focused run API test covers real
 create/update/delete requests, missing/non-numeric/nonpositive inputs, invalid
 and future dates, signed-out and cross-user access, full history ordering,
-Monday/previous-Sunday boundaries, and totals after date/distance changes and
+Sunday/previous-Saturday boundaries, and totals after date/distance changes and
 deletion. A small progress test covers unset, incomplete, met, and exceeded goals.
 The database test also verifies run persistence after closing and reopening.
 
@@ -211,7 +221,7 @@ Sprint 3 / TS-05 section above for current verification status.
 
 Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
 
-`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. This is one current goal, not a history of goals by date.
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Saving a changed daily target records today’s goal with the profile, and clearing records a null goal so older goals do not reappear. Dated goals can also be saved and deleted from the Calorie goals panel. A future date stays inactive until that day.
 
 ### Meal API
 
@@ -228,18 +238,20 @@ Validation returns 400 with field `errors`. Signed-out requests return 401. Miss
 
 ### calorie_goals
 
-Each row is one calorie goal for one runner on one date. Saving the same date again updates that row. The goal in effect on a later day is the latest row dated on or before that day. `age` is the profile age at the time the goal was saved.
+Each row records a calorie goal setting for one runner. Multiple changes on the same date are retained, newest first. The goal in effect on a later day is the latest row dated on or before that day. `age` is the profile age at the time the goal was saved.
 
 | Column | Type | Meaning |
 | --- | --- | --- |
 | id | INTEGER, primary key | Goal entry identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their goals |
-| effective_date | TEXT, required | Calendar date in YYYY-MM-DD format; unique per runner |
-| calories | INTEGER, required | Whole-number daily calorie goal from 1 to 10000 |
+| effective_date | TEXT, required | Calendar date in YYYY-MM-DD format; multiple entries per runner allowed |
+| calories | INTEGER, nullable | Whole-number daily calorie goal from 1 to 10000; null clears the goal |
 | age | INTEGER, required | Profile age saved with this goal |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
-`GET /api/calorie-goals` lists the signed-in runner's goals, newest date first. `POST /api/calorie-goals` with `{ effectiveDate, calories }` adds or updates that date. The daily calorie number on the overview is a separate educational estimate. It is calculated from age, height, weight, and the weekly mileage goal. It is not stored as a calorie goal.
+A null calorie value records a cleared goal. Existing databases are migrated automatically; existing profile targets take precedence today, while older dated records are retained. Changes on the same date append entries; the latest entry on that date wins.
+
+`GET /api/calorie-goals` lists the signed-in runner's goals, newest date first. `POST /api/calorie-goals` with `{ effectiveDate, calories }` appends a setting for that date and returns the updated user along with history. Both endpoints resolve the same active goal for meal tracking; future entries take effect on their date. The daily calorie number on the overview is a separate educational estimate. It is calculated from age, height, weight, and the weekly mileage goal. It is not stored as a calorie goal.
 
 ### sessions
 
