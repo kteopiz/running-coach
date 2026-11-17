@@ -32,7 +32,7 @@ export default function CalorieChart({ refreshKey = 0 }) {
   return (
     <section className="panel calorie-chart-panel" aria-labelledby="calorie-chart-heading">
       <h2 id="calorie-chart-heading">Calories this week</h2>
-      <p className="muted section-description">Each bar is the calories logged that day. The line is the dated goal active that day. A goal dated in the future is not active yet.</p>
+      <p className="muted section-description">Each bar is a day with at least one saved meal. A day with no meal is left out. The line is the dated goal active that day. A goal dated in the future is not active yet.</p>
       {error ? <p className="error" role="alert">{error}</p> : null}
       {!loaded ? <p className="muted">Loading the calorie chart…</p> : null}
       {loaded && !error && chart.empty ? <p className="muted">No calorie goal applies to this week yet. Save a goal dated today or earlier to compare what you eat.</p> : null}
@@ -40,12 +40,12 @@ export default function CalorieChart({ refreshKey = 0 }) {
         <div className="calorie-chart" role="list" aria-label="Daily calories compared with the active goal">
           {chart.rows.map((row) => {
             const bar = Math.round((row.consumed / scale) * 100);
-            const line = row.goal == null ? null : Math.round((row.goal / scale) * 100);
+            const line = row.goal == null ? null : Math.min(100, (row.goal / scale) * 100);
             const caption = row.goal == null ? `${row.consumed.toLocaleString()} cal, no goal yet` : `${row.consumed.toLocaleString()} of ${row.goal.toLocaleString()} cal`;
             return (
               <div className="calorie-chart-day" role="listitem" key={row.date} aria-label={`${weekday(row.date)}, ${caption}`}>
                 <div className="calorie-chart-plot" aria-hidden="true">
-                  {line != null ? <span className="calorie-chart-goal" style={{ bottom: `${line}%` }} /> : null}
+                  {line != null ? <span className="calorie-chart-goal" style={{ bottom: line >= 100 ? "calc(100% - 2px)" : `${line}%` }} /> : null}
                   <span className="calorie-chart-bar" style={{ height: `${Math.max(bar, row.consumed > 0 ? 4 : 0)}%` }} />
                 </div>
                 <span className="calorie-chart-label">{weekday(row.date)}</span>

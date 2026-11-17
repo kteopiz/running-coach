@@ -9,7 +9,7 @@ export function calorieChartDays({ meals = [], goals = [], today = new Date() } 
       .filter((meal) => meal.date === date)
       .reduce((sum, meal) => sum + Number(meal.calories || 0), 0);
     return { date, consumed, goal: goal ? goal.calories : null };
-  });
+  }).filter((row) => row.consumed > 0);
   return { startDate, todayDate, rows, empty: rows.length === 0 || rows.every((row) => row.goal == null) };
 }
 

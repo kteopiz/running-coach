@@ -21,11 +21,9 @@ test("the calorie chart compares logged calories with the dated goal and skips f
     ],
   });
   assert.equal(chart.empty, false);
-  assert.equal(chart.rows[0].date, "2026-11-15");
+  assert.deepEqual(chart.rows.map((row) => row.date), ["2026-11-15"]);
   assert.equal(chart.rows[0].consumed, 500);
   assert.equal(chart.rows[0].goal, 2000);
-  assert.equal(chart.rows.at(-1).date, "2026-11-16");
-  assert.equal(chart.rows.at(-1).goal, 2000);
   assert.ok(chart.rows.every((row) => row.goal !== 10000));
 
   const missing = calorieChartDays({
