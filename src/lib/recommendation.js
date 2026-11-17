@@ -119,7 +119,8 @@ export function recommendToday({ completedMiles = 0, goalMiles, daysLeft, runDat
   if (remaining === 0) {
     return { ...base, todayMiles: 0, status: "rest", message: "Your weekly goal is complete. Rest today." };
   }
-  if (weekDates.length >= RECOMMENDATION_RULES.restAfterRunDays) {
+  // Three run days suggest rest only once half of the weekly goal is already logged.
+  if (weekDates.length >= RECOMMENDATION_RULES.restAfterRunDays && !(remaining > Number(goalMiles) / 2)) {
     return { ...base, todayMiles: 0, status: "rest", message: "You have run enough days this week. Rest today." };
   }
 

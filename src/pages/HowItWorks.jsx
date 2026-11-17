@@ -27,7 +27,7 @@ export default function HowItWorks({ user, onNavigate }) {
             <li>Divide that by the days left in the week, counting today. Sunday has 7 days left. Saturday has 1.</li>
             <li>A day does not go above 25 percent of the weekly goal, and it does not go above 6 miles.</li>
             <li>A run already saved for today cuts that suggestion in half.</li>
-            <li>Runs saved on 3 different days this week, or a goal that is already met, suggest rest.</li>
+            <li>Runs saved on 3 different days this week suggest rest when at least half of the weekly goal is already logged. If most of the goal is still left, today follows the usual split. A goal that is already met suggests rest.</li>
           </ul>
         </section>
         <section className="panel" aria-labelledby="guide-estimate">
