@@ -168,7 +168,9 @@ function CalorieGoals({ revision, onUserChange }) {
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const pending = saving || deletingId != null;
 
   useEffect(() => {
     let active = true;
@@ -191,9 +193,9 @@ function CalorieGoals({ revision, onUserChange }) {
     const nextErrors = validateCalorieGoal({ effectiveDate, calories });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    setPending(true);
+    setSaving(true);
     const result = await saveCalorieGoal({ effectiveDate, calories: Number(calories) });
-    setPending(false);
+    setSaving(false);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
     if (result.user) onUserChange?.(result.user);
@@ -204,9 +206,9 @@ function CalorieGoals({ revision, onUserChange }) {
   async function handleDelete(goal) {
     if (pending || !window.confirm(`Delete the calorie goal for ${formatDay(goal.effectiveDate)}? This cannot be undone.`)) return;
     setMessage("");
-    setPending(true);
+    setDeletingId(goal.id);
     const result = await deleteCalorieGoal(goal.id);
-    setPending(false);
+    setDeletingId(null);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
     if (result.user) onUserChange?.(result.user);
@@ -239,7 +241,7 @@ function CalorieGoals({ revision, onUserChange }) {
         </label>
         {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
         {message ? <p className="success" role="status">{message}</p> : null}
-        <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save calorie goal"}</button>
+        <button type="submit" disabled={pending}>{saving ? "Saving…" : "Save calorie goal"}</button>
       </form>
       <label className="timeline-date">
         Goal on this date
@@ -256,7 +258,7 @@ function CalorieGoals({ revision, onUserChange }) {
               <span>{goal.effectiveDate > today ? "Not yet active" : "Active"}</span>
               <span>Age {goal.age}</span>
               <strong>{calorieAmount(goal.calories)}</strong>
-              <button type="button" onClick={() => handleDelete(goal)} disabled={pending}>Delete</button>
+              <button type="button" onClick={() => handleDelete(goal)} disabled={pending}>{deletingId === goal.id ? "Deleting…" : "Delete"}</button>
             </li>
           ))}
         </ul>
