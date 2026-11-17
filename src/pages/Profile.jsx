@@ -102,7 +102,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <UnitSystemField value={unitSystem} onChange={changeUnits} disabled={pending} />
             <label>
               Age
-              <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" value={age} onChange={(event) => setAge(event.target.value)} aria-invalid={Boolean(errors.age)} />
+              <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" value={age} onChange={(event) => { setAge(event.target.value); setErrors((current) => ({ ...current, age: undefined })); }} aria-invalid={Boolean(errors.age)} />
               {errors.age ? <span className="error">{errors.age}</span> : null}
             </label>
             <HeightFields
@@ -118,18 +118,18 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             />
             <label>
               Weight (lb)
-              <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} aria-invalid={Boolean(errors.weight)} />
+              <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" value={weight} onChange={(event) => { setWeight(event.target.value); setErrors((current) => ({ ...current, weight: undefined })); }} aria-invalid={Boolean(errors.weight)} />
               {errors.weight ? <span className="error">{errors.weight}</span> : null}
             </label>
             <label className="weekly-goal-field">
               {weeklyGoalLabel(unitSystem)}
-              <input name="weeklyMileageGoal" type="number" min={displayedDistanceBounds(unitSystem).min} max={displayedDistanceBounds(unitSystem).max} step="0.01" value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
+              <input name="weeklyMileageGoal" type="number" min={displayedDistanceBounds(unitSystem).min} max={displayedDistanceBounds(unitSystem).max} step="0.01" value={weeklyGoal} onChange={(event) => { setWeeklyGoal(event.target.value); setErrors((current) => ({ ...current, weeklyMileageGoal: undefined })); }} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
               {errors.weeklyMileageGoal ? <span className="error">{errors.weeklyMileageGoal}</span> : null}
             </label>
             {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : calorieEstimateUnavailable(unitSystem)}</p>}
             <label className="weekly-goal-field">
               Daily calorie goal (calories)
-              <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => setDailyCalorieGoal(event.target.value)} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
+              <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => { setDailyCalorieGoal(event.target.value); setErrors((current) => ({ ...current, dailyCalorieGoal: undefined })); }} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
               {errors.dailyCalorieGoal ? <span className="error">{errors.dailyCalorieGoal}</span> : null}
               <span className="account-help">Optional. Meal logging uses the goal saved for the selected day, and this number when that day has no dated goal. Leave it blank to clear it.</span>
             </label>
