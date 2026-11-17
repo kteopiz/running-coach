@@ -38,7 +38,7 @@ export default function HowItWorks({ user, onNavigate }) {
         <section className="panel" aria-labelledby="guide-meals">
           <h2 id="guide-meals">Meals and calorie goals</h2>
           <p>A meal’s calories are the number you typed. The week list adds those saved meals. A day with no saved meal is left out, so a daily goal is not copied onto that empty day.</p>
-          <p>On a day that has a meal, the goal beside it is the latest calorie goal you saved on or before that day. If you have not saved one, it uses the daily calorie goal on your profile. If neither is saved, the day shows the meals only.</p>
+          <p>On a day that has a meal, the goal beside it is the latest calorie goal you saved on or before that day. A saved goal with no calories means that day has no calorie goal. If you have not saved one, it uses the daily calorie goal on your profile. If neither is saved, the day shows the meals only.</p>
           <p>The meal log’s remaining calories use the daily calorie goal on your profile for the date you have selected. They stop at zero when the meals go past that goal.</p>
         </section>
       </div>

@@ -1,4 +1,4 @@
-import { calorieGoalOn } from "./calories.js";
+import { activeCalorieTarget, calorieGoalOn } from "./calories.js";
 import { eachDate, weekBounds } from "./week.js";
 
 export function calorieChartDays({ meals = [], goals = [], today = new Date() } = {}) {
@@ -31,23 +31,20 @@ export function runGoalDifference({ completedMiles = 0, weeklyGoal = null } = {}
   return { status, completed, goal, difference };
 }
 
-function targetForDate(goals, dailyGoal, date) {
-  const dated = calorieGoalOn(goals, date);
-  if (dated) return dated.calories;
-  const fallback = Number(dailyGoal);
-  return Number.isInteger(fallback) && fallback > 0 ? fallback : null;
-}
-
 export function weeklyCalorieDifference({ meals = [], goals = [], dailyGoal = null, today = new Date() } = {}) {
   const grouped = groupMealsByDay({ meals, today });
   const { startDate, todayDate, total } = grouped;
   if (grouped.empty) return { status: "missing", consumed: 0, target: null, difference: null, startDate, todayDate };
-  const targets = grouped.days.map((day) => targetForDate(goals, dailyGoal, day.date));
-  if (targets.every((value) => value == null)) return { status: "missing", consumed: total, target: null, difference: null, startDate, todayDate };
-  const target = targets.reduce((sum, value) => sum + (value || 0), 0);
-  const difference = total - target;
+  const comparable = grouped.days.flatMap((day) => {
+    const target = activeCalorieTarget(goals, dailyGoal, day.date);
+    return target ? [{ consumed: day.calories, target: target.calories }] : [];
+  });
+  if (comparable.length === 0) return { status: "missing", consumed: total, target: null, difference: null, startDate, todayDate };
+  const consumed = comparable.reduce((sum, day) => sum + day.consumed, 0);
+  const target = comparable.reduce((sum, day) => sum + day.target, 0);
+  const difference = consumed - target;
   const status = difference > 0 ? "above" : difference < 0 ? "below" : "met";
-  return { status, consumed: total, target, difference, startDate, todayDate };
+  return { status, consumed, target, difference, startDate, todayDate };
 }
 
 const MEAL_PERIODS = ["breakfast", "lunch", "dinner", "snack"];

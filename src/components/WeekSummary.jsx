@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { calorieGoalOn } from "../lib/calories";
+import { activeCalorieTarget } from "../lib/calories";
 import { formatCalories } from "../lib/format";
 import { MEAL_KINDS } from "../lib/meals";
 import { localDate } from "../lib/runValidation";
@@ -27,11 +27,7 @@ function amount(miles, unitSystem) {
 }
 
 function goalForDay(goals, dailyGoal, date) {
-  const dated = calorieGoalOn(goals, date);
-  if (dated && dated.calories != null) return { calories: dated.calories, savedOn: dated.effectiveDate };
-  const fallback = Number(dailyGoal);
-  if (Number.isInteger(fallback) && fallback > 0) return { calories: fallback, savedOn: null };
-  return null;
+  return activeCalorieTarget(goals, dailyGoal, date);
 }
 
 function distanceReadout(miles, goalMiles, unitSystem) {

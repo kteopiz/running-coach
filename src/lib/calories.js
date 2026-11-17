@@ -103,6 +103,19 @@ export function calorieGoalOn(goals, date) {
   return match;
 }
 
+// A dated goal with no calories was cleared. It does not fall back to the profile goal,
+// and it is not a target of zero.
+export function activeCalorieTarget(goals, dailyGoal, date) {
+  const dated = calorieGoalOn(goals, date);
+  if (dated) {
+    if (dated.calories == null) return null;
+    return { calories: dated.calories, savedOn: dated.effectiveDate };
+  }
+  const fallback = Number(dailyGoal);
+  if (Number.isInteger(fallback) && fallback > 0) return { calories: fallback, savedOn: null };
+  return null;
+}
+
 // The next saved goal after a date has not started yet.
 export function upcomingCalorieGoal(goals, date) {
   if (!isGoalDate(date)) return null;

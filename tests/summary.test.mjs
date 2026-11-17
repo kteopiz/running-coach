@@ -65,6 +65,29 @@ test("run and meal differences use the weekly goal and the dated calorie target"
   assert.equal(compared.consumed, 800);
   assert.equal(compared.status, "below");
   assert.equal(weeklyCalorieDifference({ today: "2026-11-16", meals: [], goals: [], dailyGoal: 3000 }).status, "missing");
+
+  const clearedOnly = weeklyCalorieDifference({
+    today: "2026-11-16",
+    dailyGoal: 3000,
+    meals: [{ date: "2026-11-16", kind: "breakfast", calories: 800 }],
+    goals: [{ id: 2, effectiveDate: "2026-11-16", calories: null }],
+  });
+  assert.equal(clearedOnly.status, "missing");
+  assert.equal(clearedOnly.target, null);
+  assert.equal(clearedOnly.consumed, 800);
+
+  const clearedBesideGoal = weeklyCalorieDifference({
+    today: "2026-11-16",
+    dailyGoal: 3000,
+    meals: [
+      { date: "2026-11-15", kind: "lunch", calories: 500 },
+      { date: "2026-11-16", kind: "breakfast", calories: 800 },
+    ],
+    goals: [{ id: 2, effectiveDate: "2026-11-16", calories: null }],
+  });
+  assert.equal(clearedBesideGoal.target, 3000);
+  assert.equal(clearedBesideGoal.consumed, 500);
+  assert.equal(clearedBesideGoal.status, "below");
 });
 
 test("meals group by day and period and the weekly total matches the days", () => {
