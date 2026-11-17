@@ -31,6 +31,13 @@ test("profile has one calorie editor and meal setup prompt follows the active go
     assert.match(dashboard, /Sunday – Saturday · Kilometers/);
     assert.match(dashboard, /170\.2 cm/);
     assert.doesNotMatch(dashboard, /Monday – Sunday/);
+    assert.match(dashboard, /Calorie tracking is for educational use/);
+    const unavailable = renderToStaticMarkup(createElement(Dashboard, { user: { ...metricUser, age: 101 } }));
+    assert.match(unavailable, /Age is 10 to 100/);
+    assert.match(unavailable, /Review profile &amp; goal/);
+    assert.match(unavailable, /This is not a target and it is not medical advice/);
+    const noGoal = renderToStaticMarkup(createElement(Dashboard, { user: { ...metricUser, weeklyMileageGoal: null } }));
+    assert.match(noGoal, /Set a positive weekly mileage goal/);
     assert.doesNotMatch(renderToStaticMarkup(createElement(MealLog, { user })), /Set calorie goal/);
     assert.match(renderToStaticMarkup(createElement(MealLog, { user: { ...user, dailyCalorieGoal: null } })), /Set calorie goal/);
   } finally { await vite.close(); }

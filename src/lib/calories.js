@@ -26,7 +26,23 @@ export const CALORIE_ESTIMATE_NOTE =
 export const CALORIE_ESTIMATE_UNAVAILABLE =
   "Those values are outside the range this educational estimate can use. Age is 10 to 100, height is 36 to 96 inches, weight is 50 to 400 lb, and the weekly goal is 0.1 to 100 miles.";
 
-export function calorieInputs({ age, heightInches, height, weightLb, weight, weeklyMileageGoal } = {}) {
+export function calorieEstimateMessage(profile = {}) {
+  const { age, heightInches, height, weightLb, weight, weeklyMileageGoal } = profile ?? {};
+  if (![age, heightInches ?? height, weightLb ?? weight].every(value =>
+    (typeof value === "number" || typeof value === "string") && Number.isFinite(Number(value)) && Number(value) >= 1
+  ) || !Number.isInteger(Number(age))) {
+    return "Enter a valid age, height, and weight in Profile & goal to calculate an educational daily calorie estimate.";
+  }
+  if (!Number.isFinite(Number(weeklyMileageGoal)) || Number(weeklyMileageGoal) <= 0) {
+    return "Set a positive weekly mileage goal in Profile & goal to calculate an educational daily calorie estimate.";
+  }
+  return `These inputs do not produce a supported calorie estimate. Review your profile and running goal. ${CALORIE_ESTIMATE_UNAVAILABLE}`;
+}
+
+export function calorieInputs(profile = {}) {
+  const { age, heightInches, height, weightLb, weight, weeklyMileageGoal } = profile ?? {};
+  if (![age, heightInches ?? height, weightLb ?? weight, weeklyMileageGoal].every(value =>
+    typeof value === "number" || typeof value === "string")) return null;
   const ageNum = Number(age);
   const heightNum = Number(heightInches ?? height);
   const weightNum = Number(weightLb ?? weight);
@@ -47,8 +63,10 @@ export function estimateDailyCalories(profile) {
   const centimeters = inputs.heightInches * CENTIMETERS_PER_INCH;
   const restingCalories = Math.round(10 * kilograms + 6.25 * centimeters - 5 * inputs.age + RESTING_ADJUSTMENT);
   const runningCalories = Math.round((inputs.weeklyMileageGoal * inputs.weightLb * CALORIES_PER_POUND_MILE) / 7);
+  const total = restingCalories + runningCalories;
+  if (!Number.isSafeInteger(total) || total < 1 || restingCalories < 1) return null;
   return {
-    calories: restingCalories + runningCalories,
+    calories: total,
     restingCalories,
     runningCalories,
     inputs,

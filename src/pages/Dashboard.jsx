@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
-import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, estimateDailyCalories } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, calorieEstimateMessage, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
 import { localDate } from "../lib/runValidation";
 import { formatCalories } from "../lib/format";
@@ -91,6 +91,7 @@ export default function Dashboard({ user, onNavigate }) {
             <p className="metric-label" id="today-heading">Today</p>
             <p className="recommendation-miles">{recommendation.todayMiles == null ? "—" : formatDistanceAmount(recommendation.todayMiles, user.unitSystem)}<span> {distanceUnitShort(user.unitSystem)}</span></p>
             <p className="muted">{recommendationText(recommendation, user.unitSystem)}</p>
+            <p className="panel-note">Educational running guidance only. This is not medical advice.</p>
           </div> : null}
         </> : null}
       </section>
@@ -100,8 +101,8 @@ export default function Dashboard({ user, onNavigate }) {
         {calorieEstimate ? <>
           <p className="metric-label">{calorieEstimate.label}</p>
           <p className="metric-value">{formatCalories(calorieEstimate.calories)}<span> cal</span></p>
-          <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
-        </> : <p className="muted">{Number(user.weeklyMileageGoal) > 0 ? CALORIE_ESTIMATE_UNAVAILABLE : "Set a weekly mileage goal to calculate an educational daily calorie estimate."}</p>}
+        </> : <p className="muted">{calorieEstimateMessage(user)} <button className="text-button" onClick={() => onNavigate("profile")}>Review profile & goal</button></p>}
+        <p className="panel-note">{CALORIE_ESTIMATE_NOTE}</p>
       </section>
       <CalorieChart refreshKey={nutritionRevision} />
       <MealLog user={user} onNavigate={onNavigate} onChange={() => setNutritionRevision((value) => value + 1)} />
