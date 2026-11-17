@@ -40,7 +40,18 @@ test("schema enforces unique emails, positive measurements, and run ownership", 
     initializeDatabase(db);
     assert.throws(() => db.prepare("UPDATE users SET email = 'ALEX@EXAMPLE.COM' WHERE email = 'sam@example.com'").run());
     assert.throws(() => db.prepare("UPDATE users SET age = 0 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET age = 9 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET age = 101 WHERE id = 1").run());
     assert.throws(() => db.prepare("UPDATE users SET height_inches = 0 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET height_inches = 35 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET height_inches = 97 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET weight_lb = 49 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET weight_lb = 401 WHERE id = 1").run());
+    assert.throws(() => db.prepare("UPDATE users SET weekly_mileage_goal = 0.05 WHERE id = 1").run());
+    assert.throws(() => db.prepare("INSERT INTO runs (user_id, run_date, distance_miles) VALUES (1, '2026-10-03', 0.05)").run());
+    assert.throws(() => db.prepare("INSERT INTO runs (user_id, run_date, distance_miles) VALUES (1, '2026-10-03', 100.01)").run());
+    db.prepare("UPDATE users SET age = 100, height_inches = 96, weight_lb = 400, weekly_mileage_goal = 0.1 WHERE id = 1").run();
+    db.prepare("INSERT INTO runs (user_id, run_date, distance_miles) VALUES (1, '2026-10-03', 0.1)").run();
     assert.throws(() => db.prepare("INSERT INTO runs (user_id, run_date, distance_miles) VALUES (999, '2026-10-03', 3)").run());
     assert.throws(() => db.prepare("INSERT INTO runs (user_id, run_date, distance_miles) VALUES (1, 'not-a-date', 3)").run());
     db.prepare("DELETE FROM users WHERE email = 'alex@example.com'").run();
