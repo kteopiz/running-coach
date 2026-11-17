@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   weight_lb REAL NOT NULL CHECK (weight_lb >= 1),
   weekly_mileage_goal REAL CHECK (weekly_mileage_goal > 0),
   daily_calorie_goal INTEGER CHECK (daily_calorie_goal >= 1 AND daily_calorie_goal <= 10000),
+  unit_system TEXT NOT NULL DEFAULT 'imperial' CHECK (unit_system IN ('imperial', 'metric')),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
@@ -28,10 +29,9 @@ CREATE TABLE IF NOT EXISTS calorie_goals (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   effective_date TEXT NOT NULL CHECK (date(effective_date) IS NOT NULL AND date(effective_date) = effective_date),
-  calories INTEGER NOT NULL CHECK (calories >= 1 AND calories <= 10000),
+  calories INTEGER CHECK (calories >= 1 AND calories <= 10000),
   age INTEGER NOT NULL CHECK (age >= 1),
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (user_id, effective_date)
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS calorie_goals_user_date ON calorie_goals(user_id, effective_date);

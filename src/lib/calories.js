@@ -1,12 +1,18 @@
+import { INPUT_LIMITS } from "./validation.js";
+
 // Profile and activity inputs for the educational daily calorie estimate.
 // Age, height, and weight come from the runner profile. Weekly mileage is the running goal.
 export const CALORIE_INPUTS = {
-  minAge: 1,
-  minHeightInches: 1,
-  minWeightLb: 1,
-  minWeeklyMiles: 0,
-  minGoalCalories: 1,
-  maxGoalCalories: 10000,
+  minAge: INPUT_LIMITS.minAge,
+  maxAge: INPUT_LIMITS.maxAge,
+  minHeightInches: INPUT_LIMITS.minHeightInches,
+  maxHeightInches: INPUT_LIMITS.maxHeightInches,
+  minWeightLb: INPUT_LIMITS.minWeightLb,
+  maxWeightLb: INPUT_LIMITS.maxWeightLb,
+  minWeeklyMiles: INPUT_LIMITS.minWeeklyMiles,
+  maxWeeklyMiles: INPUT_LIMITS.maxWeeklyMiles,
+  minGoalCalories: INPUT_LIMITS.minGoalCalories,
+  maxGoalCalories: INPUT_LIMITS.maxGoalCalories,
 };
 
 const POUNDS_PER_KILOGRAM = 2.2046226218;
@@ -16,7 +22,9 @@ const RESTING_ADJUSTMENT = -78;
 const CALORIES_PER_POUND_MILE = 0.63;
 
 export const CALORIE_ESTIMATE_NOTE =
-  "Educational estimate from age, height, weight, and weekly running goal. This is not medical advice.";
+  "Educational estimate from age, height, weight, and weekly running goal. This is not a target and it is not medical advice.";
+export const CALORIE_ESTIMATE_UNAVAILABLE =
+  "Those values are outside the range this educational estimate can use. Age is 10 to 100, height is 36 to 96 inches, weight is 50 to 400 lb, and the weekly goal is 0.1 to 100 miles.";
 
 export function calorieEstimateMessage(profile = {}) {
   const { age, heightInches, height, weightLb, weight, weeklyMileageGoal } = profile ?? {};
@@ -28,7 +36,7 @@ export function calorieEstimateMessage(profile = {}) {
   if (!Number.isFinite(Number(weeklyMileageGoal)) || Number(weeklyMileageGoal) <= 0) {
     return "Set a positive weekly mileage goal in Profile & goal to calculate an educational daily calorie estimate.";
   }
-  return "These inputs do not produce a supported calorie estimate. Review your profile and running goal.";
+  return `These inputs do not produce a supported calorie estimate. Review your profile and running goal. ${CALORIE_ESTIMATE_UNAVAILABLE}`;
 }
 
 export function calorieInputs(profile = {}) {
@@ -40,10 +48,10 @@ export function calorieInputs(profile = {}) {
   const weightNum = Number(weightLb ?? weight);
   const miles = Number(weeklyMileageGoal);
   const valid =
-    Number.isInteger(ageNum) && ageNum >= CALORIE_INPUTS.minAge &&
-    Number.isFinite(heightNum) && heightNum >= CALORIE_INPUTS.minHeightInches &&
-    Number.isFinite(weightNum) && weightNum >= CALORIE_INPUTS.minWeightLb &&
-    Number.isFinite(miles) && miles > CALORIE_INPUTS.minWeeklyMiles;
+    Number.isInteger(ageNum) && ageNum >= CALORIE_INPUTS.minAge && ageNum <= CALORIE_INPUTS.maxAge &&
+    Number.isFinite(heightNum) && heightNum >= CALORIE_INPUTS.minHeightInches && heightNum <= CALORIE_INPUTS.maxHeightInches &&
+    Number.isFinite(weightNum) && weightNum >= CALORIE_INPUTS.minWeightLb && weightNum <= CALORIE_INPUTS.maxWeightLb &&
+    Number.isFinite(miles) && miles >= CALORIE_INPUTS.minWeeklyMiles && miles <= CALORIE_INPUTS.maxWeeklyMiles;
   if (!valid) return null;
   return { age: ageNum, heightInches: heightNum, weightLb: weightNum, weeklyMileageGoal: miles };
 }
@@ -80,12 +88,27 @@ export function validateCalorieGoal({ effectiveDate, calories }) {
   return errors;
 }
 
+function isGoalDate(date) {
+  return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date);
+}
+
 // The goal in effect on a date is the latest entry dated on or before that day.
 export function calorieGoalOn(goals, date) {
-  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  if (!isGoalDate(date)) return null;
   let match = null;
   for (const goal of Array.isArray(goals) ? goals : []) {
-    if (goal?.effectiveDate <= date && (!match || goal.effectiveDate > match.effectiveDate)) match = goal;
+    if (goal?.effectiveDate <= date && (!match || goal.effectiveDate > match.effectiveDate ||
+      (goal.effectiveDate === match.effectiveDate && goal.id > match.id))) match = goal;
+  }
+  return match;
+}
+
+// The next saved goal after a date has not started yet.
+export function upcomingCalorieGoal(goals, date) {
+  if (!isGoalDate(date)) return null;
+  let match = null;
+  for (const goal of Array.isArray(goals) ? goals : []) {
+    if (goal?.effectiveDate > date && (!match || goal.effectiveDate < match.effectiveDate)) match = goal;
   }
   return match;
 }
