@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { createMeal, deleteMeal, getMeals, updateMeal } from "../lib/userStore";
+import { createMeal, deleteMeal, getCalorieGoals, getMeals, updateMeal } from "../lib/userStore";
 import { localDate } from "../lib/runValidation";
+import { activeCalorieTarget } from "../lib/calories";
 import { MEAL_KINDS, calorieProgress, validateMealFields } from "../lib/meals";
 import { formatCalories } from "../lib/format";
 
@@ -21,6 +22,7 @@ function kindLabel(kind) {
 export default function MealLog({ user, onNavigate, onChange }) {
   const [selectedDate, setSelectedDate] = useState(localDate());
   const [meals, setMeals] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
@@ -31,20 +33,23 @@ export default function MealLog({ user, onNavigate, onChange }) {
   const today = localDate();
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) && selectedDate <= today;
   const dayMeals = meals.filter((meal) => meal.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time) || a.id - b.id);
-  const progress = dateReady && !error ? calorieProgress(meals, user.dailyCalorieGoal, selectedDate) : null;
+  const dayTarget = activeCalorieTarget(goals, user.dailyCalorieGoal, selectedDate);
+  const progress = dateReady && !error ? calorieProgress(meals, dayTarget?.calories ?? null, selectedDate) : null;
   const progressPercent = progress?.goalCalories ? Math.min(progress.status === "in-progress" ? 99 : 100, Math.round((progress.consumedCalories / progress.goalCalories) * 100)) : 0;
 
   useEffect(() => {
     let active = true;
     async function load(isRefresh) {
       if (!isRefresh) setLoading(true);
-      const result = await getMeals();
+      const [result, goalResult] = await Promise.all([getMeals(), getCalorieGoals()]);
       if (!active) return;
-      if (!result.ok) {
+      if (!result.ok || !goalResult.ok) {
         setMeals([]);
-        setError(result.error || "Could not load meals.");
+        setGoals([]);
+        setError(result.error || goalResult.error || "Could not load meals.");
       } else {
         setMeals(result.meals);
+        setGoals(goalResult.goals || []);
         setError("");
       }
       setLoading(false);

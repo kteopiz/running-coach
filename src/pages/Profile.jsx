@@ -33,6 +33,10 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const goalMiles = milesFromDistanceEntry(weeklyGoal, unitSystem).miles;
   const calorieEstimate = estimateDailyCalories({ age, height: heightInches, weight, weeklyMileageGoal: goalMiles });
 
+  useEffect(() => {
+    setDailyCalorieGoal(user.dailyCalorieGoal != null ? String(user.dailyCalorieGoal) : "");
+  }, [user.dailyCalorieGoal]);
+
   function changeUnits(next) {
     if (next === unitSystem) return;
     const converted = convertHeightEntry(heightEntry, next);
@@ -127,7 +131,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
               Daily calorie goal (calories)
               <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => setDailyCalorieGoal(event.target.value)} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
               {errors.dailyCalorieGoal ? <span className="error">{errors.dailyCalorieGoal}</span> : null}
-              <span className="account-help">Optional. Meal logging uses this to calculate remaining calories. Leave it blank to clear it.</span>
+              <span className="account-help">Optional. Meal logging uses the goal saved for the selected day, and this number when that day has no dated goal. Leave it blank to clear it.</span>
             </label>
             {errors.form ? <p className="error">{errors.form}</p> : null}
             {success ? <p className="success">{success}</p> : null}
@@ -135,7 +139,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           </form>
         </section>
       </div>
-      <CalorieGoals revision={historyRevision} />
+      <CalorieGoals revision={historyRevision} onUserChange={onUserChange} />
     </AppShell>
   );
 }
@@ -148,7 +152,7 @@ function calorieAmount(calories) {
   return calories == null ? "Goal cleared" : `${formatCalories(calories)} cal`;
 }
 
-function CalorieGoals({ revision }) {
+function CalorieGoals({ revision, onUserChange }) {
   const [goals, setGoals] = useState([]);
   const [effectiveDate, setEffectiveDate] = useState(localDate());
   const [calories, setCalories] = useState("");
@@ -185,6 +189,7 @@ function CalorieGoals({ revision }) {
     setPending(false);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
+    if (result.user) onUserChange?.(result.user);
     setCalories("");
     setMessage("Calorie goal saved.");
   }
@@ -197,6 +202,7 @@ function CalorieGoals({ revision }) {
     setPending(false);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
+    if (result.user) onUserChange?.(result.user);
     setMessage("Calorie goal deleted.");
   }
 

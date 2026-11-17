@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { calorieGoalOn, calorieInputs, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../src/lib/calories.js";
+import { activeCalorieTarget, calorieGoalOn, calorieInputs, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../src/lib/calories.js";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { localDate } from "../src/lib/runValidation.js";
 import { createApi } from "../server/api.mjs";
@@ -36,6 +36,17 @@ test("daily calorie estimate is a labelled educational total", () => {
   const upper = estimateDailyCalories({ age: 10, heightInches: 96, weightLb: 400, weeklyMileageGoal: 100 });
   assert.ok(upper.calories < 10000);
   assert.ok(upper.calories < 18672);
+});
+
+test("a selected day uses its dated calorie goal, including a cleared goal", () => {
+  const goals = [
+    { id: 1, effectiveDate: "2026-11-15", calories: 1800 },
+    { id: 2, effectiveDate: "2026-11-16", calories: 2200 },
+  ];
+  assert.equal(activeCalorieTarget(goals, 3000, "2026-11-15").calories, 1800);
+  assert.equal(activeCalorieTarget(goals, 3000, "2026-11-16").calories, 2200);
+  assert.equal(activeCalorieTarget(goals, 3000, "2026-11-10").calories, 3000);
+  assert.equal(activeCalorieTarget([{ id: 3, effectiveDate: "2026-11-16", calories: null }], 3000, "2026-11-16"), null);
 });
 
 test("calorie goal history resolves the goal in effect on a date", () => {
@@ -94,7 +105,9 @@ test("calorie goals are saved by date and stay with their owner", async () => {
     const future = await request("/calorie-goals", "POST", { effectiveDate: "2099-01-01", calories: 10000 });
     assert.equal(future.ok, true);
     const futureId = future.goals.find((goal) => goal.effectiveDate === "2099-01-01").id;
-    assert.equal((await request(`/calorie-goals/${futureId}`, "DELETE")).ok, true);
+    const removedFuture = await request(`/calorie-goals/${futureId}`, "DELETE");
+    assert.equal(removedFuture.ok, true);
+    assert.equal(removedFuture.user.email, "alex@example.com");
     assert.equal((await request("/calorie-goals")).goals.some((goal) => goal.id === futureId), false);
     assert.equal((await request(`/calorie-goals/${futureId}`, "DELETE")).status, 404);
     assert.equal((await request(`/calorie-goals/${later.goals[0].id}`, "DELETE")).ok, true);
