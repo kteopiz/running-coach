@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { hashPassword, verifyPassword } from "./passwords.mjs";
-import { validateAccountFields, validateMeasurements, validateProfileFields } from "../src/lib/validation.js";
+import { validateAccountFields, validateMeasurements, validateName, validateProfileFields } from "../src/lib/validation.js";
 
 import { localDate, validateRunFields } from "../src/lib/runValidation.js";
 import { weekBounds } from "../src/lib/recommendation.js";
@@ -92,8 +92,9 @@ export function createApi(db) {
       }
       if (route === "POST /api/register") {
         const body = await readBody(req);
-        const name = typeof body.name === "string" ? body.name.trim() : "";
-        if (!name) fail("Full name is required.");
+        const nameError = validateName(body.name);
+        if (nameError) fail(nameError);
+        const name = body.name.trim();
         const accountError = validateAccountFields({ ...body, confirmPassword: body.password }, true);
         if (accountError) fail(accountError);
         const errors = validateMeasurements(body);
@@ -131,8 +132,9 @@ export function createApi(db) {
       }
       const runMatch = path.match(/^\/api\/runs\/([1-9]\d*)$/);
       const mealMatch = path.match(/^\/api\/meals\/([1-9]\d*)$/);
+      const goalMatch = path.match(/^\/api\/calorie-goals\/([1-9]\d*)$/);
       const runMutation = runMatch && ["PATCH", "DELETE"].includes(req.method);
-      const calorieRoute = route === "GET /api/calorie-goals" || route === "POST /api/calorie-goals";
+      const calorieRoute = route === "GET /api/calorie-goals" || route === "POST /api/calorie-goals" || (goalMatch && req.method === "DELETE");
       const mealMutation = mealMatch && ["PATCH", "DELETE"].includes(req.method);
       if (!["PATCH /api/profile", "PATCH /api/account", "GET /api/runs", "POST /api/runs", "GET /api/meals", "POST /api/meals"].includes(route) && !runMutation && !mealMutation && !calorieRoute) fail("Endpoint not found.", 404);
       const user = sessionUser(req);
@@ -140,7 +142,7 @@ export function createApi(db) {
       if (route === "PATCH /api/profile") {
         const body = await readBody(req);
         const errors = validateProfileFields(body);
-        if (Object.keys(errors).length) fail(Object.values(errors)[0]);
+        if (Object.keys(errors).length) return respond(res, 400, { ok: false, error: Object.values(errors)[0], errors });
         const dailyCalorieGoal = body.dailyCalorieGoal == null || body.dailyCalorieGoal === "" ? null : Number(body.dailyCalorieGoal);
         const unitSystem = unitSystemFor(body, user.unitSystem || "imperial");
         db.exec("BEGIN");
@@ -172,6 +174,12 @@ export function createApi(db) {
       if (calorieRoute) {
         const listGoals = () => db.prepare(`SELECT id, effective_date AS effectiveDate, calories, age
           FROM calorie_goals WHERE user_id = ? ORDER BY effective_date DESC, id DESC`).all(user.id);
+        if (req.method === "DELETE") {
+          const id = Number(goalMatch[1]);
+          if (!db.prepare("SELECT id FROM calorie_goals WHERE id = ? AND user_id = ?").get(id, user.id)) fail("Calorie goal not found.", 404);
+          db.prepare("DELETE FROM calorie_goals WHERE id = ? AND user_id = ?").run(id, user.id);
+          return respond(res, 200, { ok: true, goals: listGoals() });
+        }
         if (req.method === "GET") return respond(res, 200, { ok: true, goals: listGoals() });
         const body = await readBody(req);
         const errors = validateCalorieGoal(body);

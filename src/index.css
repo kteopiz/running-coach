@@ -192,6 +192,49 @@ main:not(.page) h1 { font-size: 36px; }
 .height-entry { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .height-entry .error { grid-column: 1 / -1; }
 .weekly-goal-field { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 3px; }
+.calorie-chart-panel { margin-top: 22px; }
+.calorie-chart { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 10px; align-items: end; }
+.calorie-chart-day { min-width: 0; }
+.calorie-chart-plot { position: relative; height: 120px; border-radius: 6px; background: var(--track); display: flex; align-items: flex-end; overflow: hidden; }
+.calorie-chart-bar { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; }
+.calorie-chart-goal { position: absolute; left: 4px; right: 4px; height: 0; border-top: 2px solid var(--text); }
+.calorie-chart-label, .calorie-chart-caption { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.goal-history button { min-height: 32px; padding: 6px 10px; }
+.week-summary { margin-top: 22px; }
+.week-summary h3 { margin: 22px 0 10px; }
+.week-summary h4 { margin: 16px 0 8px; font-size: 14px; font-weight: 650; }
+.week-figures { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin: 14px 0 8px; }
+.week-figures .metric-value { font-size: 22px; letter-spacing: 0; }
+.readout { margin-top: 8px; max-width: 68ch; }
+.entry-table { width: 100%; border-collapse: collapse; }
+.entry-table th, .entry-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; overflow-wrap: anywhere; }
+.entry-table th { color: var(--muted); font-size: 12px; font-weight: 650; }
+.history-more { margin-top: 12px; }
+.goal-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.goal-form > button, .goal-form > .error, .goal-form > .success { grid-column: 1 / -1; }
+.goal-history li { flex-wrap: wrap; align-items: center; }
+.guide-sections { display: grid; gap: 16px; }
+.guide-sections h2 { margin-bottom: 8px; }
+.guide-sections p { margin-top: 8px; }
+.guide-sections ul { margin: 10px 0 0; }
+.guide-sections li { font-size: 14px; line-height: 1.6; }
+.guide-sections li + li { margin-top: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.app-header .help-button { width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 50%; border-color: #c9bfd6; font-size: 16px; font-weight: 700; line-height: 1; }
+.app-header .help-button[aria-current="page"] { color: white; border-color: #bb95f5; background: #33293f; }
+@media (max-width: 760px) {
+  .goal-form { grid-template-columns: 1fr; }
+  .app-header .help-button { min-height: 32px; }
+}
+.week-groups { display: grid; gap: 14px; }
+.week-groups h4 { margin: 0 0 6px; }
+.week-groups ul { margin: 4px 0 10px; padding-left: 18px; }
+.week-groups li { overflow-wrap: anywhere; }
+.timeline-date { display: grid; gap: 6px; max-width: 220px; margin: 8px 0 12px; }
+.day-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.day-timeline li { display: flex; gap: 12px; min-width: 0; }
+.day-timeline time { min-width: 64px; color: var(--muted); }
+.day-timeline span { overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   button { min-height: 44px; }
 }

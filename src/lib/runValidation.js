@@ -1,3 +1,5 @@
+import { INPUT_LIMITS } from "./validation.js";
+
 export function localDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -18,17 +20,20 @@ export function validateRunFields({ date, distanceMiles, durationMinutes, startT
   if (typeof startTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)) {
     errors.startTime = "Enter the time the run started.";
   }
-  if (notes != null && notes !== "" && (typeof notes !== "string" || notes.trim().length > 500)) {
-    errors.notes = "Notes must be 500 characters or fewer.";
+  if (notes != null && notes !== "" && (typeof notes !== "string" || notes.trim().length > INPUT_LIMITS.maxNotesLength)) {
+    errors.notes = `Notes must be ${INPUT_LIMITS.maxNotesLength} characters or fewer.`;
   }
-  for (const [field, value, label] of [
-    ["distanceMiles", distanceMiles, "Distance"],
-    ["durationMinutes", durationMinutes, "Duration"],
-  ]) {
-    if ((typeof value !== "number" && typeof value !== "string") ||
-        (typeof value === "string" && !value.trim()) || !Number.isFinite(Number(value)) || Number(value) <= 0) {
-      errors[field] = `${label} must be a positive number.`;
-    }
+  const distance = Number(distanceMiles);
+  if ((typeof distanceMiles !== "number" && typeof distanceMiles !== "string") ||
+      (typeof distanceMiles === "string" && !distanceMiles.trim()) ||
+      !Number.isFinite(distance) || distance < INPUT_LIMITS.minRunMiles || distance > INPUT_LIMITS.maxRunMiles) {
+    errors.distanceMiles = `Distance must be from ${INPUT_LIMITS.minRunMiles} to ${INPUT_LIMITS.maxRunMiles} miles.`;
+  }
+  const duration = Number(durationMinutes);
+  if ((typeof durationMinutes !== "number" && typeof durationMinutes !== "string") ||
+      (typeof durationMinutes === "string" && !durationMinutes.trim()) ||
+      !Number.isFinite(duration) || duration < INPUT_LIMITS.minDurationMinutes || duration > INPUT_LIMITS.maxDurationMinutes) {
+    errors.durationMinutes = `Duration must be from ${INPUT_LIMITS.minDurationMinutes} to ${INPUT_LIMITS.maxDurationMinutes} minutes.`;
   }
   return errors;
 }

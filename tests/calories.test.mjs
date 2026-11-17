@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { calorieGoalOn, calorieInputs, estimateDailyCalories, validateCalorieGoal } from "../src/lib/calories.js";
+import { calorieGoalOn, calorieInputs, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../src/lib/calories.js";
 import { openDatabase, initializeDatabase } from "../server/database.mjs";
 import { localDate } from "../src/lib/runValidation.js";
 import { createApi } from "../server/api.mjs";
@@ -28,6 +28,14 @@ test("daily calorie estimate is a labelled educational total", () => {
   assert.ok(estimate.runningCalories > 0);
   assert.ok(estimateDailyCalories({ ...alex, weeklyMileageGoal: 30 }).runningCalories > estimate.runningCalories);
   assert.equal(estimateDailyCalories({ age: 30, height: 70, weight: 170 }), null);
+  assert.equal(estimate.calories, 1714);
+  const implausible = { age: 25, heightInches: 70, weightLb: 200, weeklyMileageGoal: 1000 };
+  assert.equal(calorieInputs(implausible), null);
+  assert.equal(estimateDailyCalories(implausible), null);
+  assert.equal(calorieInputs({ age: 1, heightInches: 1, weightLb: 1, weeklyMileageGoal: 15 }), null);
+  const upper = estimateDailyCalories({ age: 10, heightInches: 96, weightLb: 400, weeklyMileageGoal: 100 });
+  assert.ok(upper.calories < 10000);
+  assert.ok(upper.calories < 18672);
 });
 
 test("calorie goal history resolves the goal in effect on a date", () => {
@@ -41,6 +49,9 @@ test("calorie goal history resolves the goal in effect on a date", () => {
   assert.equal(calorieGoalOn(goals, "2026-06-01").calories, 2200);
   assert.equal(calorieGoalOn(goals, "2026-10-29").age, 30);
   assert.equal(calorieGoalOn(goals, "not-a-date"), null);
+  assert.equal(upcomingCalorieGoal(goals, "2026-03-01").effectiveDate, "2026-06-01");
+  assert.equal(upcomingCalorieGoal(goals, "2026-06-01"), null);
+  assert.equal(upcomingCalorieGoal([{ effectiveDate: "2099-01-01", calories: 10000 }], "2026-11-15").calories, 10000);
   assert.equal(validateCalorieGoal({ effectiveDate: "2026-02-31", calories: 2000 }).effectiveDate, "Enter a valid date.");
   assert.ok(validateCalorieGoal({ effectiveDate: "2026-01-15", calories: 0 }).calories);
   assert.deepEqual(validateCalorieGoal({ effectiveDate: "2026-01-15", calories: 2100 }), {});
@@ -80,6 +91,24 @@ test("calorie goals are saved by date and stay with their owner", async () => {
       ["2026-01-15", 2100],
       ["2026-01-15", 2000],
     ]);
+    const future = await request("/calorie-goals", "POST", { effectiveDate: "2099-01-01", calories: 10000 });
+    assert.equal(future.ok, true);
+    const futureId = future.goals.find((goal) => goal.effectiveDate === "2099-01-01").id;
+    assert.equal((await request(`/calorie-goals/${futureId}`, "DELETE")).ok, true);
+    assert.equal((await request("/calorie-goals")).goals.some((goal) => goal.id === futureId), false);
+    assert.equal((await request(`/calorie-goals/${futureId}`, "DELETE")).status, 404);
+    assert.equal((await request(`/calorie-goals/${later.goals[0].id}`, "DELETE")).ok, true);
+    const remaining = await request("/calorie-goals");
+    assert.deepEqual(remaining.goals.map((goal) => goal.effectiveDate), ["2026-01-15", "2026-01-15"]);
+    const januaryId = remaining.goals[0].id;
+    await request("/session", "DELETE");
+    cookie = "";
+    assert.equal((await request("/login", "POST", { email: "sam@example.com", password: "demo123" })).ok, true);
+    assert.equal((await request(`/calorie-goals/${januaryId}`, "DELETE")).status, 404);
+    await request("/session", "DELETE");
+    cookie = "";
+    assert.equal((await request("/login", "POST", { email: "alex@example.com", password: "demo123" })).ok, true);
+    assert.equal((await request("/calorie-goals")).goals[0].id, januaryId);
     // Both entry points feed the active goal returned to meal tracking.
     const today = localDate();
     const profile = { age: 26, height: 67, weight: 145, weeklyMileageGoal: 15, dailyCalorieGoal: 2400 };

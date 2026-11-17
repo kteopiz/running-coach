@@ -1,4 +1,4 @@
-export { MEASUREMENT_MIN, validateProfileFields } from "./validation";
+export { INPUT_LIMITS, MEASUREMENT_MIN, validateName, validateProfileFields } from "./validation";
 
 async function request(path, method = "GET", body) {
   try {
@@ -31,6 +31,7 @@ export const updateRun = (id, fields) => request(`/runs/${id}`, "PATCH", fields)
 export const deleteRun = (id) => request(`/runs/${id}`, "DELETE");
 export const getCalorieGoals = () => request("/calorie-goals");
 export const saveCalorieGoal = (fields) => request("/calorie-goals", "POST", fields);
+export const deleteCalorieGoal = (id) => request(`/calorie-goals/${id}`, "DELETE");
 export const getMeals = () => request("/meals");
 export const createMeal = (fields) => request("/meals", "POST", fields);
 export const updateMeal = (id, fields) => request(`/meals/${id}`, "PATCH", fields);

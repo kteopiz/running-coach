@@ -57,10 +57,10 @@ Definitions live in `db/schema.sql`; sample data lives in `db/seed.sql`.
 | name | TEXT, required | Nonblank display name |
 | email | TEXT, required, unique | Case-insensitive account email |
 | password_hash | TEXT, required | Salted scrypt password hash; never sent to the UI |
-| age | INTEGER, required | Age, at least 1 |
-| height_inches | REAL, required | Height in inches, at least 1. The UI shows feet and inches, or centimeters |
-| weight_lb | REAL, required | Weight in pounds, at least 1. Weight stays in pounds |
-| weekly_mileage_goal | REAL, optional | Positive weekly mileage goal in miles; NULL means unset. The UI can show kilometers |
+| age | INTEGER, required | Age, a whole number from 10 to 100 |
+| height_inches | REAL, required | Height in inches, from 36 to 96. The UI shows feet and inches, or centimeters |
+| weight_lb | REAL, required | Weight in pounds, from 50 to 400. Weight stays in pounds |
+| weekly_mileage_goal | REAL, optional | Weekly mileage goal from 0.1 to 100 miles; NULL means unset. The UI can show kilometers |
 | unit_system | TEXT, required | `imperial` or `metric`. Existing accounts default to imperial |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
@@ -73,9 +73,9 @@ The runner chooses imperial or metric on sign-up and on the profile. The choice 
 | id | INTEGER, primary key | Run identifier |
 | user_id | INTEGER, foreign key | Owner in users; deleting the owner deletes their runs |
 | run_date | TEXT, required | Calendar date in YYYY-MM-DD format |
-| distance_miles | REAL, required | Positive distance in miles. A metric account shows the same distance in kilometers |
+| distance_miles | REAL, required | Distance from 0.1 to 100 miles. A metric account shows the same distance in kilometers |
 | duration_minutes | REAL, nullable for legacy records | Positive duration in minutes; required when creating or editing through the API |
-| notes | TEXT | Description; defaults to an empty string |
+| notes | TEXT | Description, at most 500 characters; defaults to an empty string |
 | created_at | TEXT, required | UTC creation timestamp, filled automatically |
 
 Runs are indexed by owner and date. The dashboard shows all of the signed-in
@@ -221,7 +221,7 @@ Sprint 3 / TS-05 section above for current verification status.
 
 Meals are indexed by owner and date. The overview shows meals for one selected date, with consumed calories, the daily calorie goal, and remaining calories. Logging, editing, and deleting reload that date. Weight is copied from the profile at create time and is not edited with the meal. Changing the profile weight later does not rewrite older meals.
 
-`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Measurements & goals is the single editing control; saving a changed target records today’s goal atomically with the profile, and clearing records a null goal so older goals do not reappear. Previous goal settings are listed in the collapsed history section below the field.
+`users.daily_calorie_goal` is an optional whole number from 1 to 10000. It is the current daily target used for remaining calories. Blank clears it. Existing databases gain this column on startup; a reset is not required. The active goal is resolved from the latest calorie-history entry on or before today, with this column as a fallback for older profiles. Saving a changed daily target records today’s goal with the profile, and clearing records a null goal so older goals do not reappear. Dated goals can also be saved and deleted from the Calorie goals panel. A future date stays inactive until that day.
 
 ### Meal API
 

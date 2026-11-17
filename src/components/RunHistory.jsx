@@ -4,6 +4,8 @@ import { localDate, localTime, validateRunFields } from "../lib/runValidation";
 import { sortRuns } from "../lib/runSort";
 import { distanceFieldLabel, distanceInputValue, distanceUnitName, distanceUnitShort, formatDistanceAmount, milesFromDistanceEntry } from "../lib/units";
 
+const PAGE_SIZE = 5;
+
 const SORTS = [
   ["newest", "Newest first"],
   ["oldest", "Oldest first"],
@@ -33,7 +35,10 @@ export default function RunHistory({ runs, loading, error, onRefresh, unitSystem
   const [message, setMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [sort, setSort] = useState("newest");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const ordered = sortRuns(runs, sort);
+  const visible = ordered.slice(0, visibleCount);
+  const hiddenCount = ordered.length - visible.length;
 
   async function handleDelete(run) {
     if (pending || !window.confirm(`Delete the run on ${runLabel(run)}? This cannot be undone.`)) return;
@@ -60,9 +65,9 @@ export default function RunHistory({ runs, loading, error, onRefresh, unitSystem
         setMessage("");
         setActionError("");
         setEditing({ date: localDate(), startTime: localTime(), distanceMiles: "", durationMinutes: "", notes: "", unitSystem });
-      }}>+ Log a run</button></div>
+      }}>Log a run</button></div>
       <label className="sort-control">Sort
-        <select value={sort} onChange={event => setSort(event.target.value)} aria-label="Sort run history">
+        <select value={sort} onChange={(event) => { setSort(event.target.value); setVisibleCount(PAGE_SIZE); }} aria-label="Sort run history">
           {SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
@@ -73,8 +78,10 @@ export default function RunHistory({ runs, loading, error, onRefresh, unitSystem
       {error ? <><p className="error" role="alert">{error}</p><button type="button" onClick={onRefresh}>Retry</button></> : null}
       {!loading && !error && runs.length === 0 ? <p>No runs yet. Log your first run to start tracking your training.</p> : null}
       {runs.length > 0 ? (
+        <>
+        {ordered.length > PAGE_SIZE ? <p className="muted">Showing {visible.length} of {ordered.length}.</p> : null}
         <ul className="run-list">
-          {ordered.map(run => (
+          {visible.map(run => (
             <li className="run-row" key={run.id}>
               <div className="run-date"><span className="run-icon" aria-hidden="true">↗</span><div><time dateTime={`${run.date}T${run.startTime || "12:00"}`}>{new Date(`${run.date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><span className="muted">{formatClock(run.startTime)}</span></div></div>
               <div className="run-stat"><strong>{formatDistanceAmount(run.distanceMiles, unitSystem)}<span> {distanceUnitShort(unitSystem)}</span></strong><span className="muted">Distance</span></div>
@@ -90,6 +97,8 @@ export default function RunHistory({ runs, loading, error, onRefresh, unitSystem
             </li>
           ))}
         </ul>
+        {hiddenCount > 0 ? <button className="history-more" type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>Show {Math.min(PAGE_SIZE, hiddenCount)} more</button> : null}
+        </>
       ) : null}
     </section>
   );

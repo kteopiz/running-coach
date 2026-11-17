@@ -18,14 +18,14 @@ test("profile has one calorie editor and meal setup prompt follows the active go
     const user = { name: "Alex", email: "alex@example.com", age: 25, height: 67, weight: 145, weeklyMileageGoal: 15, dailyCalorieGoal: 2200 };
     const profile = renderToStaticMarkup(createElement(Profile, { user }));
     assert.equal((profile.match(/name="dailyCalorieGoal"/g) || []).length, 1);
-    assert.doesNotMatch(profile, /Save calorie goal|name="calories"/);
-    assert.match(profile, /<details[^>]*><summary>Calorie goal history/);
+    assert.match(profile, /Calorie goals/);
+    assert.match(profile, /Save calorie goal/);
     const metricUser = { ...user, unitSystem: "metric" };
     const metricProfile = renderToStaticMarkup(createElement(Profile, { user: metricUser }));
     assert.match(metricProfile, /Height \(cm\)/);
     assert.match(metricProfile, /Weekly mileage goal \(km\)/);
     assert.equal((metricProfile.match(/name="dailyCalorieGoal"/g) || []).length, 1);
-    assert.doesNotMatch(metricProfile, /Save calorie goal|Goal on this date/);
+    assert.match(metricProfile, /How the numbers work/);
     const { default: Dashboard } = await vite.ssrLoadModule("/src/pages/Dashboard.jsx");
     const dashboard = renderToStaticMarkup(createElement(Dashboard, { user: metricUser }));
     assert.match(dashboard, /Sunday – Saturday · Kilometers/);

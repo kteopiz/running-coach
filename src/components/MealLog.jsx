@@ -18,7 +18,7 @@ function kindLabel(kind) {
   return MEAL_KINDS.find(([value]) => value === kind)?.[1] || kind;
 }
 
-export default function MealLog({ user, onNavigate }) {
+export default function MealLog({ user, onNavigate, onChange }) {
   const [selectedDate, setSelectedDate] = useState(localDate());
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +68,7 @@ export default function MealLog({ user, onNavigate }) {
     if (!result.ok) return setActionError(result.error);
     setMessage("Meal deleted.");
     setRevision((value) => value + 1);
+    onChange?.();
   }
 
   function handleSaved(meal) {
@@ -75,6 +76,7 @@ export default function MealLog({ user, onNavigate }) {
     setEditing(null);
     setSelectedDate(meal.date);
     setRevision((value) => value + 1);
+    onChange?.();
   }
 
   return (
@@ -92,7 +94,7 @@ export default function MealLog({ user, onNavigate }) {
           setMessage("");
           setActionError("");
           setEditing({ date: selectedDate, time: "", kind: "", description: "", calories: "" });
-        }}>+ Log a meal</button>
+        }}>Log a meal</button>
       </div>
       {!dateReady ? <p className="error" role="alert">Enter a valid meal date. Future dates are not allowed.</p> : null}
       {progress ? (

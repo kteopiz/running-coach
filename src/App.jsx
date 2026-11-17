@@ -7,10 +7,13 @@ import {
   authenticateUser,
   clearSession,
   getCurrentUser,
-  MEASUREMENT_MIN,
+  INPUT_LIMITS,
   registerUser,
+  validateName,
 } from "./lib/userStore";
+import { validateMeasurements } from "./lib/validation";
 import Dashboard from "./pages/Dashboard";
+import HowItWorks from "./pages/HowItWorks";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 
@@ -57,6 +60,10 @@ export default function App() {
         onNavigate={handleNavigate}
       />
     );
+  }
+
+  if (user && page === "guide") {
+    return <HowItWorks user={user} onNavigate={handleNavigate} />;
   }
 
   if (user && page === "profile") {
@@ -146,9 +153,19 @@ function SignUp({ onBack, onSuccess }) {
       setHeightError(parsedHeight.error);
       return;
     }
-    setPending(true);
-
     const form = new FormData(event.currentTarget);
+    const nameError = validateName(String(form.get("name") ?? ""));
+    const measurementErrors = validateMeasurements({
+      age: form.get("age"),
+      height: parsedHeight.inches,
+      weight: form.get("weight"),
+    });
+    const firstError = nameError || measurementErrors.age || measurementErrors.height || measurementErrors.weight;
+    if (firstError) {
+      setError(firstError);
+      return;
+    }
+    setPending(true);
     const result = await registerUser({
       name: form.get("name"),
       email: form.get("email"),
@@ -175,7 +192,7 @@ function SignUp({ onBack, onSuccess }) {
       <form onSubmit={handleSubmit}>
         <label>
           Full name
-          <input name="name" type="text" required />
+          <input name="name" type="text" maxLength={INPUT_LIMITS.maxNameLength} required />
         </label>
         <label>
           Email
@@ -188,7 +205,7 @@ function SignUp({ onBack, onSuccess }) {
         <UnitSystemField value={unitSystem} onChange={changeUnits} disabled={pending} />
         <label>
           Age
-          <input name="age" type="number" min="1" required />
+          <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" required />
         </label>
         <HeightFields
           unitSystem={unitSystem}
@@ -203,7 +220,7 @@ function SignUp({ onBack, onSuccess }) {
         />
         <label>
           Weight (lb)
-          <input name="weight" type="number" min={MEASUREMENT_MIN} step="0.1" required />
+          <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" required />
         </label>
         {error ? <p className="error">{error}</p> : null}
         <button type="submit" disabled={pending}>{pending ? "Creating…" : "Create account"}</button>

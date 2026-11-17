@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { getActivity } from "../lib/userStore";
 import { weeklyProgress } from "../lib/weeklyProgress";
-import { CALORIE_ESTIMATE_NOTE, estimateDailyCalories } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, estimateDailyCalories } from "../lib/calories";
 import { recommendToday } from "../lib/recommendation";
 import { localDate } from "../lib/runValidation";
 import { formatCalories } from "../lib/format";
 import { distanceHeading, distanceUnitName, distanceUnitShort, formatDistanceAmount, formatHeight, recommendationText } from "../lib/units";
 
 import AppShell from "../components/AppShell";
+import CalorieChart from "../components/CalorieChart";
 import MealLog from "../components/MealLog";
+import WeekSummary from "../components/WeekSummary";
 import RunHistory from "../components/RunHistory";
 
 export default function Dashboard({ user, onNavigate }) {
@@ -17,6 +19,7 @@ export default function Dashboard({ user, onNavigate }) {
     user.weeklyMileageGoal !== undefined &&
     Number(user.weeklyMileageGoal) > 0;
   const [revision, setRevision] = useState(0);
+  const [nutritionRevision, setNutritionRevision] = useState(0);
   const [activity, setActivity] = useState(null);
   const [activityError, setActivityError] = useState("");
   const [loadingActivity, setLoadingActivity] = useState(true);
@@ -91,15 +94,17 @@ export default function Dashboard({ user, onNavigate }) {
           </div> : null}
         </> : null}
       </section>
+      <WeekSummary user={user} runs={activity?.runs || []} refreshKey={nutritionRevision} />
       <section className="panel calorie-panel" aria-labelledby="calorie-heading">
         <h2 id="calorie-heading">Daily calorie estimate</h2>
         {calorieEstimate ? <>
           <p className="metric-label">{calorieEstimate.label}</p>
           <p className="metric-value">{formatCalories(calorieEstimate.calories)}<span> cal</span></p>
           <p className="muted">{CALORIE_ESTIMATE_NOTE}</p>
-        </> : <p className="muted">Set a weekly mileage goal to calculate an educational daily calorie estimate.</p>}
+        </> : <p className="muted">{Number(user.weeklyMileageGoal) > 0 ? CALORIE_ESTIMATE_UNAVAILABLE : "Set a weekly mileage goal to calculate an educational daily calorie estimate."}</p>}
       </section>
-      <MealLog user={user} onNavigate={onNavigate} />
+      <CalorieChart refreshKey={nutritionRevision} />
+      <MealLog user={user} onNavigate={onNavigate} onChange={() => setNutritionRevision((value) => value + 1)} />
       <div className="dashboard-grid">
         <RunHistory unitSystem={user.unitSystem} runs={activity?.runs || []} loading={loadingActivity}
           error={activityError} onRefresh={() => setRevision(value => value + 1)} />
