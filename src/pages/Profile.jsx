@@ -2,10 +2,10 @@ import AppShell from "../components/AppShell";
 import HeightFields from "../components/HeightFields";
 import UnitSystemField from "../components/UnitSystemField";
 import { useEffect, useState } from "react";
-import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, calorieGoalOn, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, calorieEstimateUnavailable, calorieGoalOn, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../lib/calories";
 import { formatCalories } from "../lib/format";
 import { localDate } from "../lib/runValidation";
-import { convertDistanceEntry, convertHeightEntry, distanceInputValue, heightFieldsFromInches, inchesFromHeightEntry, milesFromDistanceEntry, weeklyGoalLabel } from "../lib/units";
+import { convertDistanceEntry, convertHeightEntry, displayedDistanceBounds, distanceInputValue, distanceRangeMessage, heightFieldsFromInches, heightRangeMessage, inchesFromHeightEntry, milesFromDistanceEntry, weeklyGoalLabel } from "../lib/units";
 import { INPUT_LIMITS, deleteCalorieGoal, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
@@ -68,7 +68,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     });
     if (parsedHeight.error) nextErrors.height = parsedHeight.error;
     if (parsedGoal.error) nextErrors.weeklyMileageGoal = parsedGoal.error;
-    setErrors(nextErrors);
+    setErrors(showLimitsInUnits(nextErrors, unitSystem));
     if (Object.keys(nextErrors).length > 0) return;
 
     setPending(true);
@@ -82,7 +82,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     });
     setPending(false);
     if (!result.ok) {
-      setErrors(result.errors || { form: result.error });
+      setErrors(showLimitsInUnits(result.errors || { form: result.error }, unitSystem));
       return;
     }
     onUserChange(result.user);
@@ -123,10 +123,10 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             </label>
             <label className="weekly-goal-field">
               {weeklyGoalLabel(unitSystem)}
-              <input name="weeklyMileageGoal" type="number" min="0.1" step="0.01" value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
+              <input name="weeklyMileageGoal" type="number" min={displayedDistanceBounds(unitSystem).min} max={displayedDistanceBounds(unitSystem).max} step="0.01" value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
               {errors.weeklyMileageGoal ? <span className="error">{errors.weeklyMileageGoal}</span> : null}
             </label>
-            {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : CALORIE_ESTIMATE_UNAVAILABLE}</p>}
+            {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : calorieEstimateUnavailable(unitSystem)}</p>}
             <label className="weekly-goal-field">
               Daily calorie goal (calories)
               <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => setDailyCalorieGoal(event.target.value)} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
@@ -142,6 +142,13 @@ export default function Profile({ user, onUserChange, onNavigate }) {
       <CalorieGoals revision={historyRevision} onUserChange={onUserChange} />
     </AppShell>
   );
+}
+
+function showLimitsInUnits(errors, unitSystem) {
+  const next = { ...errors };
+  if (next.height?.includes("must be from")) next.height = heightRangeMessage(unitSystem);
+  if (next.weeklyMileageGoal?.includes("must be from")) next.weeklyMileageGoal = distanceRangeMessage(unitSystem, "Weekly mileage goal");
+  return next;
 }
 
 function formatDay(value) {

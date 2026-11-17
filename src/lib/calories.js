@@ -1,3 +1,4 @@
+import { inchesToCentimeters, milesToKilometers } from "./units.js";
 import { INPUT_LIMITS } from "./validation.js";
 
 // Profile and activity inputs for the educational daily calorie estimate.
@@ -23,8 +24,18 @@ const CALORIES_PER_POUND_MILE = 0.63;
 
 export const CALORIE_ESTIMATE_NOTE =
   "Educational estimate from age, height, weight, and weekly running goal. This is not a target and it is not medical advice.";
-export const CALORIE_ESTIMATE_UNAVAILABLE =
-  "Those values are outside the range this educational estimate can use. Age is 10 to 100, height is 36 to 96 inches, weight is 50 to 400 lb, and the weekly goal is 0.1 to 100 miles.";
+export function calorieEstimateUnavailable(unitSystem = "imperial") {
+  const metric = unitSystem === "metric";
+  const height = metric
+    ? `${inchesToCentimeters(INPUT_LIMITS.minHeightInches)} to ${inchesToCentimeters(INPUT_LIMITS.maxHeightInches)} cm`
+    : `${INPUT_LIMITS.minHeightInches} to ${INPUT_LIMITS.maxHeightInches} inches`;
+  const goal = metric
+    ? `${milesToKilometers(INPUT_LIMITS.minWeeklyMiles)} to ${milesToKilometers(INPUT_LIMITS.maxWeeklyMiles)} km`
+    : `${INPUT_LIMITS.minWeeklyMiles} to ${INPUT_LIMITS.maxWeeklyMiles} miles`;
+  return `Those values are outside the range this educational estimate can use. Age is 10 to 100, height is ${height}, weight is 50 to 400 lb, and the weekly goal is ${goal}.`;
+}
+
+export const CALORIE_ESTIMATE_UNAVAILABLE = calorieEstimateUnavailable("imperial");
 
 export function calorieEstimateMessage(profile = {}) {
   const { age, heightInches, height, weightLb, weight, weeklyMileageGoal } = profile ?? {};
@@ -36,7 +47,7 @@ export function calorieEstimateMessage(profile = {}) {
   if (!Number.isFinite(Number(weeklyMileageGoal)) || Number(weeklyMileageGoal) <= 0) {
     return "Set a positive weekly mileage goal in Profile & goal to calculate an educational daily calorie estimate.";
   }
-  return `These inputs do not produce a supported calorie estimate. Review your profile and running goal. ${CALORIE_ESTIMATE_UNAVAILABLE}`;
+  return `These inputs do not produce a supported calorie estimate. Review your profile and running goal. ${calorieEstimateUnavailable(profile?.unitSystem)}`;
 }
 
 export function calorieInputs(profile = {}) {

@@ -1,4 +1,5 @@
 import { formatGrouped, formatMiles } from "./format.js";
+import { INPUT_LIMITS } from "./validation.js";
 
 export const CM_PER_INCH = 2.54;
 export const KM_PER_MILE = 1.609344;
@@ -149,10 +150,31 @@ export function weeklyGoalLabel(unitSystem) {
   return normalizeUnitSystem(unitSystem) === "metric" ? "Weekly mileage goal (km)" : "Weekly mileage goal (miles)";
 }
 
+export function displayedDistanceBounds(unitSystem) {
+  const metric = normalizeUnitSystem(unitSystem) === "metric";
+  return {
+    min: metric ? milesToKilometers(INPUT_LIMITS.minRunMiles) : INPUT_LIMITS.minRunMiles,
+    max: metric ? milesToKilometers(INPUT_LIMITS.maxRunMiles) : INPUT_LIMITS.maxRunMiles,
+    unit: metric ? "km" : "miles",
+  };
+}
+
+export function distanceRangeMessage(unitSystem, subject = "Distance") {
+  const bounds = displayedDistanceBounds(unitSystem);
+  return `${subject} must be from ${bounds.min} to ${bounds.max} ${bounds.unit}.`;
+}
+
+export function heightRangeMessage(unitSystem) {
+  if (normalizeUnitSystem(unitSystem) === "metric") {
+    return `Height must be from ${inchesToCentimeters(INPUT_LIMITS.minHeightInches)} to ${inchesToCentimeters(INPUT_LIMITS.maxHeightInches)} cm.`;
+  }
+  return `Height must be from ${INPUT_LIMITS.minHeightInches} to ${INPUT_LIMITS.maxHeightInches} inches.`;
+}
+
 export function recommendationText(recommendation, unitSystem) {
   if (!recommendation?.message || normalizeUnitSystem(unitSystem) !== "metric") return recommendation?.message || "";
   return recommendation.message
-    .replace(/(\d+(?:\.\d+)?)([ -])miles?\b/g, (_, amount, separator) =>
-      `${formatDistanceAmount(Number(amount), "metric")}${separator}km`)
+    .replace(/(\d+(?:\.\d+)?)[ -]miles?\b/g, (_, amount) =>
+      `${formatDistanceAmount(Number(amount), "metric")} km`)
     .replace(/\bmiles?\b/g, "km");
 }
