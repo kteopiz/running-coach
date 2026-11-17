@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createRun, updateRun, deleteRun } from "../lib/userStore";
 import { localDate, localTime, validateRunFields } from "../lib/runValidation";
 import { sortRuns } from "../lib/runSort";
-import { distanceFieldLabel, distanceInputValue, distanceUnitName, distanceUnitShort, formatDistanceAmount, milesFromDistanceEntry } from "../lib/units";
+import { displayedDistanceBounds, distanceFieldLabel, distanceInputValue, distanceRangeMessage, distanceUnitName, distanceUnitShort, formatDistanceAmount, milesFromDistanceEntry } from "../lib/units";
 
 const PAGE_SIZE = 5;
 
@@ -121,7 +121,7 @@ function RunForm({ run, unitSystem = "imperial", onSaved, onCancel }) {
     const parsed = milesFromDistanceEntry(fields.distance, unitSystem);
     const nextErrors = validateRunFields({ ...fields, distanceMiles: parsed.miles ?? 1 });
     if (parsed.error) nextErrors.distance = parsed.error;
-    else if (nextErrors.distanceMiles) nextErrors.distance = nextErrors.distanceMiles;
+    else if (nextErrors.distanceMiles) nextErrors.distance = distanceRangeMessage(unitSystem);
     delete nextErrors.distanceMiles;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -131,7 +131,7 @@ function RunForm({ run, unitSystem = "imperial", onSaved, onCancel }) {
     setPending(false);
     if (!result.ok) {
       const serverErrors = result.errors || { form: result.error };
-      if (serverErrors.distanceMiles) serverErrors.distance = serverErrors.distanceMiles;
+      if (serverErrors.distanceMiles) serverErrors.distance = distanceRangeMessage(unitSystem);
       return setErrors(serverErrors);
     }
     onSaved();
@@ -156,7 +156,7 @@ function RunForm({ run, unitSystem = "imperial", onSaved, onCancel }) {
       ))}
       <label>
         {distanceFieldLabel(unitSystem)}
-        <input name="distance" type="number" required disabled={pending} min="0" step="any" value={fields.distance} onChange={(event) => setFields({ ...fields, distance: event.target.value })} aria-invalid={Boolean(errors.distance)} aria-describedby={errors.distance ? "run-distance-error" : undefined} />
+        <input name="distance" type="number" required disabled={pending} min={displayedDistanceBounds(unitSystem).min} max={displayedDistanceBounds(unitSystem).max} step="0.01" value={fields.distance} onChange={(event) => setFields({ ...fields, distance: event.target.value })} aria-invalid={Boolean(errors.distance)} aria-describedby={errors.distance ? "run-distance-error" : undefined} />
         {errors.distance ? <span className="error" id="run-distance-error">{errors.distance}</span> : null}
       </label>
       <label>

@@ -178,7 +178,7 @@ export function createApi(db) {
           const id = Number(goalMatch[1]);
           if (!db.prepare("SELECT id FROM calorie_goals WHERE id = ? AND user_id = ?").get(id, user.id)) fail("Calorie goal not found.", 404);
           db.prepare("DELETE FROM calorie_goals WHERE id = ? AND user_id = ?").run(id, user.id);
-          return respond(res, 200, { ok: true, goals: listGoals() });
+          return respond(res, 200, { ok: true, goals: listGoals(), user: publicUser(user.id) });
         }
         if (req.method === "GET") return respond(res, 200, { ok: true, goals: listGoals() });
         const body = await readBody(req);

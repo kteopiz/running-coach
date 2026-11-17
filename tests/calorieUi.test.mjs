@@ -34,6 +34,9 @@ test("profile has one calorie editor and meal setup prompt follows the active go
     assert.match(dashboard, /Calorie tracking is for educational use/);
     const unavailable = renderToStaticMarkup(createElement(Dashboard, { user: { ...metricUser, age: 101 } }));
     assert.match(unavailable, /Age is 10 to 100/);
+    assert.match(unavailable, /91\.4 to 243\.8 cm/);
+    assert.match(unavailable, /0\.16 to 160\.93 km/);
+    assert.doesNotMatch(unavailable, /inches|miles/);
     assert.match(unavailable, /Review profile &amp; goal/);
     assert.match(unavailable, /This is not a target and it is not medical advice/);
     const noGoal = renderToStaticMarkup(createElement(Dashboard, { user: { ...metricUser, weeklyMileageGoal: null } }));

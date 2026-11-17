@@ -1,9 +1,12 @@
+import { inchesToCentimeters } from "../lib/units";
+import { INPUT_LIMITS } from "../lib/validation";
+
 export default function HeightFields({ unitSystem, feet, inches, centimeters, onFeet, onInches, onCentimeters, error, disabled }) {
   if (unitSystem === "metric") {
     return (
       <label>
         Height (cm)
-        <input name="centimeters" type="number" min="2.5" step="0.1" required disabled={disabled} value={centimeters} onChange={(event) => onCentimeters(event.target.value)} aria-invalid={Boolean(error)} />
+        <input name="centimeters" type="number" min={inchesToCentimeters(INPUT_LIMITS.minHeightInches)} max={inchesToCentimeters(INPUT_LIMITS.maxHeightInches)} step="0.1" required disabled={disabled} value={centimeters} onChange={(event) => onCentimeters(event.target.value)} aria-invalid={Boolean(error)} />
         {error ? <span className="error">{error}</span> : null}
       </label>
     );

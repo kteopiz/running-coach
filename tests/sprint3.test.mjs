@@ -41,10 +41,21 @@ test("QA-03 no-run, partial-goal, consecutive-run, and goal-complete recommendat
     runDates: ["2026-10-19", "2026-10-20", "2026-10-21"],
     today: "2026-10-21",
   });
-  assert.equal(threeDays.status, "rest");
-  assert.equal(threeDays.todayMiles, 0);
+  assert.notEqual(threeDays.status, "rest");
+  assert.ok(threeDays.todayMiles > 0);
   assert.equal(threeDays.remainingMiles, 12);
-  assert.match(threeDays.message, /Rest today/);
+
+  const threeDaysAndLittleLeft = recommendToday({
+    completedMiles: 12,
+    goalMiles: goal,
+    daysLeft: 4,
+    runDates: ["2026-10-19", "2026-10-20", "2026-10-21"],
+    today: "2026-10-21",
+  });
+  assert.equal(threeDaysAndLittleLeft.status, "rest");
+  assert.equal(threeDaysAndLittleLeft.todayMiles, 0);
+  assert.equal(threeDaysAndLittleLeft.remainingMiles, 8);
+  assert.match(threeDaysAndLittleLeft.message, /enough days/);
 
   const complete = recommendToday({ completedMiles: goal, goalMiles: goal, daysLeft: 3, today: "2026-10-23" });
   assert.equal(complete.status, "rest");

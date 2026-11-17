@@ -145,8 +145,9 @@ Rules are centralized in `src/lib/recommendation.js` and applied in this order:
 
 1. No valid goal: ask the runner to set one.
 2. Goal met or exceeded: recommend rest, with zero remaining miles.
-3. Three distinct run days this week: recommend rest even with miles remaining.
-   These days do not have to be consecutive.
+3. Three distinct run days this week recommend rest when at least half of the
+   weekly goal is already logged. If most of the goal is still left, keep the
+   normal split. These days do not have to be consecutive.
 4. Otherwise split the remaining miles across days left, including today. Bound
    the suggestion by 6 miles, 25% of the goal, and actual remaining miles.
 5. Round the suggestion to tenths, rounding down when needed to respect those

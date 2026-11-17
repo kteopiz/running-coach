@@ -2,10 +2,10 @@ import AppShell from "../components/AppShell";
 import HeightFields from "../components/HeightFields";
 import UnitSystemField from "../components/UnitSystemField";
 import { useEffect, useState } from "react";
-import { CALORIE_ESTIMATE_NOTE, CALORIE_ESTIMATE_UNAVAILABLE, calorieGoalOn, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../lib/calories";
+import { CALORIE_ESTIMATE_NOTE, calorieEstimateUnavailable, calorieGoalOn, estimateDailyCalories, upcomingCalorieGoal, validateCalorieGoal } from "../lib/calories";
 import { formatCalories } from "../lib/format";
 import { localDate } from "../lib/runValidation";
-import { convertDistanceEntry, convertHeightEntry, distanceInputValue, heightFieldsFromInches, inchesFromHeightEntry, milesFromDistanceEntry, weeklyGoalLabel } from "../lib/units";
+import { convertDistanceEntry, convertHeightEntry, displayedDistanceBounds, distanceInputValue, distanceRangeMessage, heightFieldsFromInches, heightRangeMessage, inchesFromHeightEntry, milesFromDistanceEntry, weeklyGoalLabel } from "../lib/units";
 import { INPUT_LIMITS, deleteCalorieGoal, getCalorieGoals, saveCalorieGoal, updateCurrentAccount, updateCurrentUser, validateProfileFields } from "../lib/userStore";
 
 export default function Profile({ user, onUserChange, onNavigate }) {
@@ -32,6 +32,10 @@ export default function Profile({ user, onUserChange, onNavigate }) {
   const heightInches = inchesFromHeightEntry(heightEntry).inches;
   const goalMiles = milesFromDistanceEntry(weeklyGoal, unitSystem).miles;
   const calorieEstimate = estimateDailyCalories({ age, height: heightInches, weight, weeklyMileageGoal: goalMiles });
+
+  useEffect(() => {
+    setDailyCalorieGoal(user.dailyCalorieGoal != null ? String(user.dailyCalorieGoal) : "");
+  }, [user.dailyCalorieGoal]);
 
   function changeUnits(next) {
     if (next === unitSystem) return;
@@ -64,7 +68,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     });
     if (parsedHeight.error) nextErrors.height = parsedHeight.error;
     if (parsedGoal.error) nextErrors.weeklyMileageGoal = parsedGoal.error;
-    setErrors(nextErrors);
+    setErrors(showLimitsInUnits(nextErrors, unitSystem));
     if (Object.keys(nextErrors).length > 0) return;
 
     setPending(true);
@@ -78,7 +82,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
     });
     setPending(false);
     if (!result.ok) {
-      setErrors(result.errors || { form: result.error });
+      setErrors(showLimitsInUnits(result.errors || { form: result.error }, unitSystem));
       return;
     }
     onUserChange(result.user);
@@ -98,7 +102,7 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             <UnitSystemField value={unitSystem} onChange={changeUnits} disabled={pending} />
             <label>
               Age
-              <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" value={age} onChange={(event) => setAge(event.target.value)} aria-invalid={Boolean(errors.age)} />
+              <input name="age" type="number" min={INPUT_LIMITS.minAge} max={INPUT_LIMITS.maxAge} step="1" value={age} onChange={(event) => { setAge(event.target.value); setErrors((current) => ({ ...current, age: undefined })); }} aria-invalid={Boolean(errors.age)} />
               {errors.age ? <span className="error">{errors.age}</span> : null}
             </label>
             <HeightFields
@@ -114,20 +118,20 @@ export default function Profile({ user, onUserChange, onNavigate }) {
             />
             <label>
               Weight (lb)
-              <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" value={weight} onChange={(event) => setWeight(event.target.value)} aria-invalid={Boolean(errors.weight)} />
+              <input name="weight" type="number" min={INPUT_LIMITS.minWeightLb} max={INPUT_LIMITS.maxWeightLb} step="0.1" value={weight} onChange={(event) => { setWeight(event.target.value); setErrors((current) => ({ ...current, weight: undefined })); }} aria-invalid={Boolean(errors.weight)} />
               {errors.weight ? <span className="error">{errors.weight}</span> : null}
             </label>
             <label className="weekly-goal-field">
               {weeklyGoalLabel(unitSystem)}
-              <input name="weeklyMileageGoal" type="number" min="0.1" step="0.01" value={weeklyGoal} onChange={(event) => setWeeklyGoal(event.target.value)} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
+              <input name="weeklyMileageGoal" type="number" min={displayedDistanceBounds(unitSystem).min} max={displayedDistanceBounds(unitSystem).max} step="0.01" value={weeklyGoal} onChange={(event) => { setWeeklyGoal(event.target.value); setErrors((current) => ({ ...current, weeklyMileageGoal: undefined })); }} aria-invalid={Boolean(errors.weeklyMileageGoal)} />
               {errors.weeklyMileageGoal ? <span className="error">{errors.weeklyMileageGoal}</span> : null}
             </label>
-            {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : CALORIE_ESTIMATE_UNAVAILABLE}</p>}
+            {calorieEstimate ? <p className="muted">{calorieEstimate.label}: {formatCalories(calorieEstimate.calories)} cal a day. {CALORIE_ESTIMATE_NOTE}</p> : <p className="muted">{weeklyGoal === "" ? "Enter a weekly mileage goal to see the educational calorie estimate." : calorieEstimateUnavailable(unitSystem)}</p>}
             <label className="weekly-goal-field">
               Daily calorie goal (calories)
-              <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => setDailyCalorieGoal(event.target.value)} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
+              <input name="dailyCalorieGoal" type="number" min="1" max="10000" step="1" value={dailyCalorieGoal} onChange={(event) => { setDailyCalorieGoal(event.target.value); setErrors((current) => ({ ...current, dailyCalorieGoal: undefined })); }} aria-invalid={Boolean(errors.dailyCalorieGoal)} />
               {errors.dailyCalorieGoal ? <span className="error">{errors.dailyCalorieGoal}</span> : null}
-              <span className="account-help">Optional. Meal logging uses this to calculate remaining calories. Leave it blank to clear it.</span>
+              <span className="account-help">Optional. Meal logging uses the goal saved for the selected day, and this number when that day has no dated goal. Leave it blank to clear it.</span>
             </label>
             {errors.form ? <p className="error">{errors.form}</p> : null}
             {success ? <p className="success">{success}</p> : null}
@@ -135,9 +139,16 @@ export default function Profile({ user, onUserChange, onNavigate }) {
           </form>
         </section>
       </div>
-      <CalorieGoals revision={historyRevision} />
+      <CalorieGoals revision={historyRevision} onUserChange={onUserChange} />
     </AppShell>
   );
+}
+
+function showLimitsInUnits(errors, unitSystem) {
+  const next = { ...errors };
+  if (next.height?.includes("must be from")) next.height = heightRangeMessage(unitSystem);
+  if (next.weeklyMileageGoal?.includes("must be from")) next.weeklyMileageGoal = distanceRangeMessage(unitSystem, "Weekly mileage goal");
+  return next;
 }
 
 function formatDay(value) {
@@ -148,7 +159,7 @@ function calorieAmount(calories) {
   return calories == null ? "Goal cleared" : `${formatCalories(calories)} cal`;
 }
 
-function CalorieGoals({ revision }) {
+function CalorieGoals({ revision, onUserChange }) {
   const [goals, setGoals] = useState([]);
   const [effectiveDate, setEffectiveDate] = useState(localDate());
   const [calories, setCalories] = useState("");
@@ -157,7 +168,9 @@ function CalorieGoals({ revision }) {
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const pending = saving || deletingId != null;
 
   useEffect(() => {
     let active = true;
@@ -180,11 +193,12 @@ function CalorieGoals({ revision }) {
     const nextErrors = validateCalorieGoal({ effectiveDate, calories });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    setPending(true);
+    setSaving(true);
     const result = await saveCalorieGoal({ effectiveDate, calories: Number(calories) });
-    setPending(false);
+    setSaving(false);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
+    if (result.user) onUserChange?.(result.user);
     setCalories("");
     setMessage("Calorie goal saved.");
   }
@@ -192,11 +206,12 @@ function CalorieGoals({ revision }) {
   async function handleDelete(goal) {
     if (pending || !window.confirm(`Delete the calorie goal for ${formatDay(goal.effectiveDate)}? This cannot be undone.`)) return;
     setMessage("");
-    setPending(true);
+    setDeletingId(goal.id);
     const result = await deleteCalorieGoal(goal.id);
-    setPending(false);
+    setDeletingId(null);
     if (!result.ok) return setErrors({ form: result.error });
     setGoals(result.goals || []);
+    if (result.user) onUserChange?.(result.user);
     setMessage("Calorie goal deleted.");
   }
 
@@ -226,7 +241,7 @@ function CalorieGoals({ revision }) {
         </label>
         {errors.form ? <p className="error" role="alert">{errors.form}</p> : null}
         {message ? <p className="success" role="status">{message}</p> : null}
-        <button type="submit" disabled={pending}>{pending ? "Saving…" : "Save calorie goal"}</button>
+        <button type="submit" disabled={pending}>{saving ? "Saving…" : "Save calorie goal"}</button>
       </form>
       <label className="timeline-date">
         Goal on this date
@@ -243,7 +258,7 @@ function CalorieGoals({ revision }) {
               <span>{goal.effectiveDate > today ? "Not yet active" : "Active"}</span>
               <span>Age {goal.age}</span>
               <strong>{calorieAmount(goal.calories)}</strong>
-              <button type="button" onClick={() => handleDelete(goal)} disabled={pending}>Delete</button>
+              <button type="button" onClick={() => handleDelete(goal)} disabled={pending}>{deletingId === goal.id ? "Deleting…" : "Delete"}</button>
             </li>
           ))}
         </ul>

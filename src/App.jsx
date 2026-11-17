@@ -2,7 +2,7 @@ import HeightFields from "./components/HeightFields";
 import ThemeToggle from "./components/ThemeToggle";
 import UnitSystemField from "./components/UnitSystemField";
 import { useEffect, useState } from "react";
-import { convertHeightEntry, inchesFromHeightEntry } from "./lib/units";
+import { convertHeightEntry, heightRangeMessage, inchesFromHeightEntry } from "./lib/units";
 import {
   authenticateUser,
   clearSession,
@@ -160,6 +160,7 @@ function SignUp({ onBack, onSuccess }) {
       height: parsedHeight.inches,
       weight: form.get("weight"),
     });
+    if (measurementErrors.height?.includes("must be from")) measurementErrors.height = heightRangeMessage(unitSystem);
     const firstError = nameError || measurementErrors.age || measurementErrors.height || measurementErrors.weight;
     if (firstError) {
       setError(firstError);

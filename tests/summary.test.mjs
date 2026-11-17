@@ -21,11 +21,9 @@ test("the calorie chart compares logged calories with the dated goal and skips f
     ],
   });
   assert.equal(chart.empty, false);
-  assert.equal(chart.rows[0].date, "2026-11-15");
+  assert.deepEqual(chart.rows.map((row) => row.date), ["2026-11-15"]);
   assert.equal(chart.rows[0].consumed, 500);
   assert.equal(chart.rows[0].goal, 2000);
-  assert.equal(chart.rows.at(-1).date, "2026-11-16");
-  assert.equal(chart.rows.at(-1).goal, 2000);
   assert.ok(chart.rows.every((row) => row.goal !== 10000));
 
   const missing = calorieChartDays({
@@ -65,6 +63,29 @@ test("run and meal differences use the weekly goal and the dated calorie target"
   assert.equal(compared.consumed, 800);
   assert.equal(compared.status, "below");
   assert.equal(weeklyCalorieDifference({ today: "2026-11-16", meals: [], goals: [], dailyGoal: 3000 }).status, "missing");
+
+  const clearedOnly = weeklyCalorieDifference({
+    today: "2026-11-16",
+    dailyGoal: 3000,
+    meals: [{ date: "2026-11-16", kind: "breakfast", calories: 800 }],
+    goals: [{ id: 2, effectiveDate: "2026-11-16", calories: null }],
+  });
+  assert.equal(clearedOnly.status, "missing");
+  assert.equal(clearedOnly.target, null);
+  assert.equal(clearedOnly.consumed, 800);
+
+  const clearedBesideGoal = weeklyCalorieDifference({
+    today: "2026-11-16",
+    dailyGoal: 3000,
+    meals: [
+      { date: "2026-11-15", kind: "lunch", calories: 500 },
+      { date: "2026-11-16", kind: "breakfast", calories: 800 },
+    ],
+    goals: [{ id: 2, effectiveDate: "2026-11-16", calories: null }],
+  });
+  assert.equal(clearedBesideGoal.target, 3000);
+  assert.equal(clearedBesideGoal.consumed, 500);
+  assert.equal(clearedBesideGoal.status, "below");
 });
 
 test("meals group by day and period and the weekly total matches the days", () => {

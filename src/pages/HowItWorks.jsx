@@ -27,7 +27,7 @@ export default function HowItWorks({ user, onNavigate }) {
             <li>Divide that by the days left in the week, counting today. Sunday has 7 days left. Saturday has 1.</li>
             <li>A day does not go above 25 percent of the weekly goal, and it does not go above 6 miles.</li>
             <li>A run already saved for today cuts that suggestion in half.</li>
-            <li>Runs saved on 3 different days this week, or a goal that is already met, suggest rest.</li>
+            <li>Runs saved on 3 different days this week suggest rest when at least half of the weekly goal is already logged. If most of the goal is still left, today follows the usual split. A goal that is already met suggests rest.</li>
           </ul>
         </section>
         <section className="panel" aria-labelledby="guide-estimate">
@@ -37,9 +37,9 @@ export default function HowItWorks({ user, onNavigate }) {
         </section>
         <section className="panel" aria-labelledby="guide-meals">
           <h2 id="guide-meals">Meals and calorie goals</h2>
-          <p>A meal’s calories are the number you typed. The week list adds those saved meals. A day with no saved meal is left out, so a daily goal is not copied onto that empty day.</p>
-          <p>On a day that has a meal, the goal beside it is the latest calorie goal you saved on or before that day. If you have not saved one, it uses the daily calorie goal on your profile. If neither is saved, the day shows the meals only.</p>
-          <p>The meal log’s remaining calories use the daily calorie goal on your profile for the date you have selected. They stop at zero when the meals go past that goal.</p>
+          <p>A meal’s calories are the number you typed. The week list and the calorie chart add those saved meals. A day with no saved meal is left out, so a daily goal is not copied onto that empty day.</p>
+          <p>On a day that has a meal, the goal beside it is the latest calorie goal you saved on or before that day. A saved goal with no calories means that day has no calorie goal. If you have not saved one, it uses the daily calorie goal on your profile. If neither is saved, the day shows the meals only.</p>
+          <p>The meal log’s remaining calories use the calorie goal for the date you have selected. That is the latest goal saved on or before that day, or the daily calorie goal on your profile when no dated goal is saved. A cleared goal leaves no remaining figure. The count stops at zero when the meals go past the goal.</p>
         </section>
       </div>
     </AppShell>

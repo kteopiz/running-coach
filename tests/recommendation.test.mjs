@@ -111,9 +111,20 @@ test("rest and reduced-mileage safety conditions limit today's distance", () => 
     runDates: ["2026-10-19", "2026-10-20", "2026-10-21"],
     today: "2026-10-21",
   });
-  assert.equal(frequent.status, "rest");
-  assert.equal(frequent.todayMiles, 0);
+  assert.notEqual(frequent.status, "rest");
+  assert.ok(frequent.todayMiles > 0);
   assert.equal(frequent.remainingMiles, 14);
+
+  const frequentAndLittleLeft = recommendToday({
+    completedMiles: 12,
+    goalMiles: 20,
+    daysLeft: 4,
+    runDates: ["2026-10-19", "2026-10-20", "2026-10-21"],
+    today: "2026-10-21",
+  });
+  assert.equal(frequentAndLittleLeft.status, "rest");
+  assert.equal(frequentAndLittleLeft.todayMiles, 0);
+  assert.equal(frequentAndLittleLeft.remainingMiles, 8);
 });
 
 test("remaining mileage has a zero floor", () => {
@@ -161,9 +172,19 @@ test("recovery counts distinct current-week days, including nonconsecutive days"
   const inputs = { goalMiles: 20, completedMiles: 6, today: "2026-10-31" };
   const baseline = recommendToday({ ...inputs, runDates: ["2026-10-25"] });
   assert.deepEqual(recommendToday({ ...inputs, runDates: ["2026-10-25", "2026-10-25", "2026-10-24", "2026-11-01"] }), baseline);
-  const rest = recommendToday({ ...inputs, runDates: ["2026-10-25", "2026-10-27", "2026-10-29"] });
+  const stillTraining = recommendToday({ ...inputs, runDates: ["2026-10-25", "2026-10-27", "2026-10-29"] });
+  assert.notEqual(stillTraining.status, "rest");
+  assert.ok(stillTraining.todayMiles > 0);
+  assert.equal(stillTraining.remainingMiles, 14);
+  const rest = recommendToday({
+    goalMiles: 20,
+    completedMiles: 16,
+    today: "2026-10-31",
+    runDates: ["2026-10-25", "2026-10-27", "2026-10-29"],
+  });
   assert.equal(rest.status, "rest");
   assert.equal(rest.todayMiles, 0);
-  assert.equal(rest.remainingMiles, 14);
+  assert.equal(rest.remainingMiles, 4);
+  assert.match(rest.message, /enough days/);
   assert.deepEqual(recommendToday(inputs), recommendToday(inputs));
 });

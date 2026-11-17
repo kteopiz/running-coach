@@ -5,6 +5,7 @@ import { CALORIE_ESTIMATE_NOTE, calorieEstimateMessage, estimateDailyCalories } 
 import { recommendToday } from "../lib/recommendation";
 import { localDate } from "../lib/runValidation";
 import { formatCalories } from "../lib/format";
+import { boundedProgress } from "../lib/progressDisplay";
 import { distanceHeading, distanceUnitName, distanceUnitShort, formatDistanceAmount, formatHeight, recommendationText } from "../lib/units";
 
 import AppShell from "../components/AppShell";
@@ -59,7 +60,7 @@ export default function Dashboard({ user, onNavigate }) {
     goalMiles: user.weeklyMileageGoal,
     runDates: activity.runs.map((run) => run.date),
   }) : null;
-  const progressPercent = progress?.progress == null ? 0 : Math.min(progress.status === "in-progress" ? 99 : 100, Math.round(progress.progress * 100));
+  const progressPercent = boundedProgress(progress?.progress ?? 0, progress?.status);
   const calorieEstimate = estimateDailyCalories(user);
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
@@ -82,10 +83,10 @@ export default function Dashboard({ user, onNavigate }) {
         {activityError ? <p className="error" role="alert">{activityError}</p> : null}
         {progress && !loadingActivity ? <>
           {hasGoal ? <>
-            <div className="progress-track" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Weekly goal progress">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+            <div className="progress-track" role="progressbar" aria-valuenow={progressPercent.value} aria-valuemin={0} aria-valuemax={100} aria-valuetext={progressPercent.label} aria-label="Weekly goal progress">
+              <div className="progress-fill" style={{ width: progressPercent.width }} />
             </div>
-            <div className="progress-caption"><span>{progress.status === "over-goal" ? `${formatDistanceAmount(progress.overMiles, user.unitSystem)} ${distanceUnitName(user.unitSystem)} beyond your goal. Nice work.` : progress.status === "complete" ? "Weekly goal reached. Nice work." : "Every run counts. Keep it going."}</span><strong>{progressPercent}% complete</strong></div>
+            <div className="progress-caption"><span>{progress.status === "over-goal" ? `${formatDistanceAmount(progress.overMiles, user.unitSystem)} ${distanceUnitName(user.unitSystem)} beyond your goal. Nice work.` : progress.status === "complete" ? "Weekly goal reached. Nice work." : "Every run counts. Keep it going."}</span><strong>{progressPercent.label} complete</strong></div>
           </> : <p className="muted">Set a weekly goal to track your progress.</p>}
           {recommendation ? <div className="recommendation" aria-live="polite">
             <p className="metric-label" id="today-heading">Today</p>

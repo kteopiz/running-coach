@@ -7,7 +7,9 @@ import { recommendToday } from "../src/lib/recommendation.js";
 import {
   convertDistanceEntry,
   convertHeightEntry,
+  displayedDistanceBounds,
   distanceFieldLabel,
+  distanceRangeMessage,
   distanceHeading,
   distanceInputValue,
   distanceUnitShort,
@@ -152,10 +154,13 @@ test("unit display preserves grouped numbers and converts every coaching distanc
   const capped = recommendToday({ goalMiles: 100, today: "2026-11-21" });
   const message = recommendationText(capped, "metric");
   assert.match(message, /9\.66 km/);
-  assert.match(message, /160\.93-km week/);
+  assert.match(message, /160\.93 km week/);
   assert.match(message, /25%/);
   assert.doesNotMatch(message, /miles?|(?<![\d.])(?:6 km|100-km)/);
   const reduced = recommendToday({ goalMiles: 20, today: "2026-11-21", runDates: ["2026-11-21"] });
-  assert.match(recommendationText(reduced, "metric"), /8\.05-km cap/);
+  assert.match(recommendationText(reduced, "metric"), /8\.05 km cap/);
+  assert.equal(displayedDistanceBounds("metric").min, 0.16);
+  assert.match(distanceRangeMessage("metric", "Weekly mileage goal"), /0\.16 to 160\.93 km/);
+  assert.doesNotMatch(distanceRangeMessage("metric"), /miles/);
   assert.equal(recommendationText(capped, "imperial"), capped.message);
 });
