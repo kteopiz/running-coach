@@ -4,6 +4,7 @@ import { localDate } from "../lib/runValidation";
 import { activeCalorieTarget } from "../lib/calories";
 import { MEAL_KINDS, calorieProgress, validateMealFields } from "../lib/meals";
 import { formatCalories } from "../lib/format";
+import { boundedProgress } from "../lib/progressDisplay";
 
 function formatDate(date) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -35,7 +36,7 @@ export default function MealLog({ user, onNavigate, onChange }) {
   const dayMeals = meals.filter((meal) => meal.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time) || a.id - b.id);
   const dayTarget = activeCalorieTarget(goals, user.dailyCalorieGoal, selectedDate);
   const progress = dateReady && !error ? calorieProgress(meals, dayTarget?.calories ?? null, selectedDate) : null;
-  const progressPercent = progress?.goalCalories ? Math.min(progress.status === "in-progress" ? 99 : 100, Math.round((progress.consumedCalories / progress.goalCalories) * 100)) : 0;
+  const progressPercent = boundedProgress(progress?.goalCalories ? progress.consumedCalories / progress.goalCalories : 0, progress?.status);
 
   useEffect(() => {
     let active = true;
@@ -112,12 +113,12 @@ export default function MealLog({ user, onNavigate, onChange }) {
           {progress.status === "no-goal" ? <p className="muted">Set a daily calorie goal to see what's left. <button className="text-button" type="button" onClick={() => onNavigate("profile")}>Set calorie goal</button></p> : null}
           {progress.goalCalories != null && !loading ? (
             <>
-              <div className="progress-track" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Daily calorie progress">
-                <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+              <div className="progress-track" role="progressbar" aria-valuenow={progressPercent.value} aria-valuemin={0} aria-valuemax={100} aria-valuetext={progressPercent.label} aria-label="Daily calorie progress">
+                <div className="progress-fill" style={{ width: progressPercent.width }} />
               </div>
               <div className="progress-caption" aria-live="polite">
                 <span>{progress.status === "over-goal" ? `${formatCalories(progress.overCalories)} cal over your goal.` : progress.status === "complete" ? "Daily calorie goal reached." : `Calories logged for ${formatDate(selectedDate)}.`}</span>
-                <strong>{progressPercent}% of goal</strong>
+                <strong>{progressPercent.label} of goal</strong>
               </div>
             </>
           ) : null}
