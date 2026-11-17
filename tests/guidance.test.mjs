@@ -59,7 +59,7 @@ test("weekly bounds run Sunday through Saturday across a month boundary", () => 
   assert.equal(crossing.startDate, "2026-11-29");
   assert.equal(crossing.endDate, "2026-12-05");
   const inside = recommendToday({
-    completedMiles: 6,
+    completedMiles: 12,
     goalMiles: 20,
     runDates: ["2026-11-28", "2026-11-29", "2026-12-02", "2026-12-05", "2026-12-06"],
     today: "2026-12-05",
